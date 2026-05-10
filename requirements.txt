@@ -1,0 +1,14 @@
+groq
+sounddevice
+scipy
+numpy
+pynput
+pyautogui
+pyperclip
+pystray
+PyQt6
+Pillow
+cairosvg
+svglib
+reportlab
+pyinstaller

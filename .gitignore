@@ -1,0 +1,36 @@
+# ── Build artifacts ──────────────────────────────────────────────────────────
+build/
+dist/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.spec.bak
+
+# ── Virtual environment ───────────────────────────────────────────────────────
+venv/
+env/
+.env
+.venv/
+
+# ── Runtime / data files ──────────────────────────────────────────────────────
+mike.db
+mike.db-shm
+mike.db-wal
+*.log
+
+# ── Secrets / config with API keys ───────────────────────────────────────────
+# config.json contains the Groq API key — do NOT commit
+config.json
+
+# ── IDE / OS junk ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ── PyInstaller working directory ─────────────────────────────────────────────
+*.manifest
