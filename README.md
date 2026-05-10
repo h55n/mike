@@ -101,6 +101,13 @@ Say any of these phrases and Mike will type the actual symbol:
 - **Microphone**: Any input device supported by Windows
 - **API Key**: [Groq API key](https://console.groq.com) (free tier available)
 
+### How to get a Groq API Key
+1. Go to the [Groq Console](https://console.groq.com) and create a free account.
+2. Click on **API Keys** in the left sidebar.
+3. Click the **Create API Key** button.
+4. Name your key (e.g., "Mike Dictation") and copy the generated key (it starts with `gsk_...`).
+5. Open Mike's Dashboard → **Settings**, paste your key, and click **Save**.
+
 ---
 
 ## Installation
@@ -272,5 +279,7 @@ MIT — see [LICENSE](LICENSE)
 <div align="center">
 
 Built with ❤️ using [Groq](https://groq.com) · [Whisper](https://openai.com/research/whisper) · [Python](https://python.org)
+
+**Made by h55n**
 
 </div>

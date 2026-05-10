@@ -1,5 +1,22 @@
 # Mike — Changelog
 
+## [2026-05-10] — GitHub Release & Continuous Mode Polish
+
+### Added
+- **GitHub Repository**: Initialized repo, added `.gitignore`, `LICENSE`, `config.example.json`, and comprehensive `README.md`.
+- **Continuous Mode HUD Button**: Added a clickable red `×` button on the continuous mode HUD to instantly stop continuous recording.
+- **Symbol Expansion**: Added `_expand_symbols()` in `filters.py`. Spoken phrases like "degree symbol" or "plus minus" are automatically converted to their Unicode characters (90+ supported).
+
+### Fixed
+- **Continuous Mode Double-Fire**: Fixed a bug where `Ctrl+Shift+Space` would trigger multiple times due to OS key-repeat. Added a monotonic sequence counter (`_toggle_seq`) and a 2-second cooldown to `toggle_continuous` in `engine.py`.
+- **Ambient Noise Rejection**: Fixed continuous mode transcribing silence and background noise. Raised `MIN_VOICE_FRAMES` to `6` and added `MIN_AVG_RMS = 100` to `audio.py` to ensure only clear speech is processed.
+- **Continuous Mode Stuck IDLE**: Fixed an issue in `engine.py` where continuous mode would drop to `IDLE` state between audio chunks. It now properly restores `RECORDING_CONT` after processing a chunk.
+- **Global Hotkey Interception**: Reverted from Windows `WH_KEYBOARD_LL` hook back to `pynput` because the low-level hook failed inside PyInstaller frozen executables.
+
+### Changed
+- **Hotkeys**: Push-to-Talk is now `Ctrl+Shift` (hold). Continuous mode is `Ctrl+Shift+Space`. This bypasses Windows OS-level hotkey interference (like language switching).
+- **PTT Timer Delay**: Added a 120ms delay to `Ctrl+Shift` PTT start to allow the user to press `Space` for continuous mode without triggering a conflict between the two modes.
+
 ## [2026-05-08] — UI Polish & Startup Reliability
 
 ### Fixed — Dashboard Icon in HUD Hover (hud.py)
