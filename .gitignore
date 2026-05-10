@@ -34,3 +34,7 @@ desktop.ini
 
 # ── PyInstaller working directory ─────────────────────────────────────────────
 *.manifest
+
+# -- Changelog ----------------------------------------------------------------
+changelog.md
+docs/changelog.md
