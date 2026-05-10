@@ -4,14 +4,12 @@
 import sys
 
 a = Analysis(
-    ['main.py'],
+    ['src/main.py'],
     pathex=[],
     binaries=[],
     datas=[
         ('assets',    'assets'),
         ('config.json', '.'),
-        ('Mike.svg',  '.'),
-        ('mic.svg',   '.'),
     ],
     hiddenimports=[
         # Windows backend

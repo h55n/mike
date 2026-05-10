@@ -9,7 +9,8 @@ import subprocess
 import sys
 import io
 
-ASSETS = pathlib.Path("assets")
+PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+ASSETS = PROJECT_ROOT / "assets"
 ASSETS.mkdir(exist_ok=True)
 
 ICON_SIZES = [16, 24, 32, 48, 64, 128, 256]
@@ -191,10 +192,8 @@ def make_hud_icons(svg_path: pathlib.Path):
 # ── Main ─────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    ROOT = pathlib.Path(__file__).resolve().parent
-
-    mic_svg  = ROOT / "mic.svg"
-    logo_svg = ROOT / "Mike.svg"
+    mic_svg  = ASSETS / "mic.svg"
+    logo_svg = ASSETS / "Mike.svg"
 
     if not mic_svg.exists():
         print(f"[ERROR] {mic_svg} not found"); sys.exit(1)

@@ -4,7 +4,8 @@
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $ScriptDir
+$ProjectRoot = Split-Path -Parent $ScriptDir
+Set-Location $ProjectRoot
 
 $AppName    = "Mike"
 $ExeName    = "Mike.exe"
@@ -18,9 +19,9 @@ Write-Host "  =====================================" -ForegroundColor Cyan
 Write-Host ""
 
 # Locate Python in venv
-$VenvPython = Join-Path $ScriptDir "venv\Scripts\python.exe"
-$VenvPip    = Join-Path $ScriptDir "venv\Scripts\pip.exe"
-$VenvPyInst = Join-Path $ScriptDir "venv\Scripts\pyinstaller.exe"
+$VenvPython = Join-Path $ProjectRoot "venv\Scripts\python.exe"
+$VenvPip    = Join-Path $ProjectRoot "venv\Scripts\pip.exe"
+$VenvPyInst = Join-Path $ProjectRoot "venv\Scripts\pyinstaller.exe"
 
 if (-not (Test-Path $VenvPython)) {
     Write-Host "  [ERROR] venv not found at: $VenvPython" -ForegroundColor Red
@@ -51,13 +52,13 @@ Write-Host "        Dependencies OK" -ForegroundColor Green
 
 # Step 3: Generate assets from SVGs
 Write-Host "  [3/6] Generating assets from SVGs..." -ForegroundColor White
-& $VenvPython generate_assets.py
+& $VenvPython scripts\generate_assets.py
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  [WARN] Asset generation had errors - continuing anyway" -ForegroundColor Yellow
 }
 
 # Verify ICO was created properly
-$IcoPath = Join-Path $ScriptDir "assets\mike.ico"
+$IcoPath = Join-Path $ProjectRoot "assets\mike.ico"
 if (-not (Test-Path $IcoPath) -or (Get-Item $IcoPath).Length -lt 1000) {
     Write-Host "  [WARN] mike.ico missing or tiny - icon may look wrong in Explorer" -ForegroundColor Yellow
 }
@@ -76,7 +77,7 @@ $ErrorActionPreference = "Continue"
 }
 $ErrorActionPreference = $OldErrorActionPreference
 
-$SrcExe = Join-Path $ScriptDir "dist\$ExeName"
+$SrcExe = Join-Path $ProjectRoot "dist\$ExeName"
 if (-not (Test-Path $SrcExe)) {
     Write-Host "  [ERROR] Build failed - dist\Mike.exe not found." -ForegroundColor Red
     Read-Host "  Press Enter to exit"; exit 1
@@ -89,7 +90,7 @@ Write-Host "  [5/6] Installing Mike..." -ForegroundColor White
 
 $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\$AppName"
 $DestExe    = Join-Path $InstallDir $ExeName
-$ConfigSrc  = Join-Path $ScriptDir "config.json"
+$ConfigSrc  = Join-Path $ProjectRoot "config.json"
 $ConfigDir  = Join-Path $env:LOCALAPPDATA "Mike"
 $ConfigDest = Join-Path $ConfigDir "config.json"
 $IconDest   = Join-Path $InstallDir "mike.ico"
@@ -149,7 +150,7 @@ Set-ItemProperty -Path $UninstKey -Name "DisplayVersion"  -Value $Version
 Set-ItemProperty -Path $UninstKey -Name "Publisher"       -Value $Publisher
 Set-ItemProperty -Path $UninstKey -Name "DisplayIcon"     -Value $IconDest
 Set-ItemProperty -Path $UninstKey -Name "InstallLocation" -Value $InstallDir
-Set-ItemProperty -Path $UninstKey -Name "UninstallString" -Value "powershell -ExecutionPolicy Bypass -File `"$ScriptDir\uninstall.ps1`""
+Set-ItemProperty -Path $UninstKey -Name "UninstallString" -Value "powershell -ExecutionPolicy Bypass -File `"$ProjectRoot\scripts\uninstall.ps1`""
 Set-ItemProperty -Path $UninstKey -Name "NoModify"        -Value 1 -Type DWord
 Set-ItemProperty -Path $UninstKey -Name "NoRepair"        -Value 1 -Type DWord
 
