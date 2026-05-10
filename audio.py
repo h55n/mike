@@ -23,8 +23,9 @@ DTYPE        = "int16"
 
 # Voice activity threshold — frames below this RMS are "silence"
 # Helps filter out typing sounds, fan noise, etc. (0–32767 scale)
-SILENCE_THRESHOLD = 150   # Lowered: catches quieter voices and brief speech
-MIN_VOICE_FRAMES  = 3     # Need at least 3 above-threshold chunks (~0.2s of speech)
+SILENCE_THRESHOLD = 300   # Only count frames clearly above ambient noise
+MIN_VOICE_FRAMES  = 6     # Need at least 6 above-threshold chunks (~0.4s of speech)
+MIN_AVG_RMS       = 100   # Entire chunk must average at least this RMS (rejects silent rooms)
 
 
 class AudioCapture:
@@ -87,6 +88,13 @@ class AudioCapture:
 
         if not frames:
             logger.debug("No audio frames captured")
+            return None
+
+        # Reject if average RMS across all frames is too low (ambient noise / silence)
+        all_data = np.concatenate(frames, axis=0).flatten().astype(np.float32)
+        avg_rms = float(np.sqrt(np.mean(all_data ** 2)))
+        if avg_rms < MIN_AVG_RMS:
+            logger.info(f"Rejecting capture — avg RMS {avg_rms:.0f} below threshold {MIN_AVG_RMS} (silence/ambient)")
             return None
 
         # Check we actually got real speech (not just background noise)

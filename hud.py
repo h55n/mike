@@ -200,8 +200,20 @@ class MikeHUD:
         c.create_polygon(points, fill=fill, outline=outline, width=1, smooth=True)
 
     def _draw_continuous_content(self, c, w, h):
-        """Continuous mode: pulsing green dot + LIVE label + stop hint."""
+        """Continuous mode: pulsing green dot + LIVE label + red X stop button."""
         mid_y = h // 2
+
+        # Red X stop button (right side) — draw first so it's easy to tap
+        x_r   = 9
+        x_x   = w - x_r - 4
+        c.create_oval(x_x - x_r, mid_y - x_r,
+                      x_x + x_r, mid_y + x_r,
+                      fill="#2a1a1a", outline="#f87171", width=1,
+                      tags="cont_stop_btn")
+        c.create_text(x_x, mid_y, text="×",
+                      font=("Segoe UI", 10, "bold"),
+                      fill="#f87171", anchor="center",
+                      tags="cont_stop_btn")
 
         # Pulsing green dot (left)
         dot_r = int(3 + 2 * self._cont_pulse)
@@ -212,15 +224,10 @@ class MikeHUD:
                       dot_x + dot_r, mid_y + dot_r,
                       fill=dot_col, outline="#22c55e", width=1)
 
-        # LIVE label
-        c.create_text(dot_x + 12, mid_y, text="LIVE",
+        # LIVE label (centre-left)
+        c.create_text(dot_x + 14, mid_y, text="LIVE",
                       font=("Segoe UI", 7, "bold"),
                       fill="#4ade80", anchor="w")
-
-        # Stop hint (right)
-        c.create_text(w - 8, mid_y, text="C+S+⎵",
-                      font=("Segoe UI", 6, "normal"),
-                      fill=TEXT_MUTED, anchor="e")
 
     def _draw_hover_content(self, c, w, h):
         """Hover: Dictate label + hotkey + mode/settings/dashboard buttons."""
@@ -435,11 +442,12 @@ class MikeHUD:
         c.bind("<ButtonPress-1>", self._on_drag_start)
         c.bind("<B1-Motion>",     self._on_drag_motion)
         c.bind("<ButtonRelease-1>", self._on_drag_end)
-        c.tag_bind("cancel_btn",  "<Button-1>", self._on_cancel)
-        c.tag_bind("confirm_btn", "<Button-1>", self._on_confirm)
-        c.tag_bind("mode_badge",  "<Button-1>", self._on_mode_click)
-        c.tag_bind("dash_btn",    "<Button-1>", self._on_dashboard)
-        c.tag_bind("edit_btn",    "<Button-1>", self._on_edit)
+        c.tag_bind("cancel_btn",    "<Button-1>", self._on_cancel)
+        c.tag_bind("confirm_btn",   "<Button-1>", self._on_confirm)
+        c.tag_bind("mode_badge",    "<Button-1>", self._on_mode_click)
+        c.tag_bind("dash_btn",      "<Button-1>", self._on_dashboard)
+        c.tag_bind("edit_btn",      "<Button-1>", self._on_edit)
+        c.tag_bind("cont_stop_btn", "<Button-1>", self._on_stop_continuous)
 
     def _on_mouse_enter(self, event):
         if self._hover_timer:
@@ -508,6 +516,13 @@ class MikeHUD:
     def _on_dashboard(self, event):
         if self.engine:
             self.engine.open_dashboard()
+
+    def _on_stop_continuous(self, event):
+        """Red X on continuous HUD — immediately stops continuous mode."""
+        if self.engine:
+            threading.Thread(
+                target=self.engine.toggle_continuous, daemon=True
+            ).start()
 
     def _on_edit(self, event):
         if self.engine:

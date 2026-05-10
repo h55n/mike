@@ -46,6 +46,8 @@ class MikeEngine:
         self._cont_thread   = None
         self._cont_stop     = threading.Event()
         self._cont_pause    = threading.Event()
+        self._toggle_seq    = 0          # increments on every toggle call
+        self._last_toggle_t = 0.0        # time of last successful toggle (seconds)
 
         # Worker thread for transcription/LLM (non-blocking)
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
@@ -121,12 +123,23 @@ class MikeEngine:
     # ─── Continuous Mode ──────────────────────────────────────────────────────
 
     def toggle_continuous(self):
+        """Toggle continuous mode. Double-fire protected via sequence counter."""
+        import time as _time
+        now = _time.monotonic()
+
         with self._state_lock:
+            # Enforce minimum 2 seconds between toggles regardless of source
+            if now - self._last_toggle_t < 2.0:
+                logger.debug("Toggle ignored — too soon after last toggle")
+                return
+            self._last_toggle_t = now
             current = self.state
 
         if current == EngineState.IDLE:
+            logger.info("Continuous mode toggle → ON")
             self._start_continuous()
         elif current in (EngineState.RECORDING_CONT, EngineState.PAUSED_CONT):
+            logger.info("Continuous mode toggle → OFF")
             self._stop_continuous()
 
     def _start_continuous(self):
