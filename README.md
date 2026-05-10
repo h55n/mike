@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="Mike.svg" width="120" alt="Mike Logo" />
+<img src="assets/Mike.svg" width="120" alt="Mike Logo" />
 
 # Mike
 

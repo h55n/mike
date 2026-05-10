@@ -345,6 +345,8 @@ class SessionRow(QWidget):
 class DashboardWindow(QMainWindow):
     def __init__(self, db_ref=None):
         super().__init__()
+        from config import Config
+        self.config = Config()
         self.db = db_ref
         self._sessions = []
         self._session_widgets = []
@@ -640,6 +642,7 @@ class DashboardWindow(QMainWindow):
         self.api_key_input = QLineEdit()
         self.api_key_input.setPlaceholderText("gsk_…")
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.api_key_input.setText(self.config.get("groq_api_key", ""))
 
         show_btn = QPushButton("Show")
         show_btn.setObjectName("ghost_btn")
@@ -677,6 +680,8 @@ class DashboardWindow(QMainWindow):
 
         self.inject_combo = QComboBox()
         self.inject_combo.addItems(["Clipboard (Ctrl+V)", "Character-by-character"])
+        method = self.config.get("inject_method", "clipboard")
+        self.inject_combo.setCurrentIndex(0 if method == "clipboard" else 1)
         inj_save = QPushButton("Save")
         inj_save.setObjectName("pill_btn")
         inj_save.clicked.connect(self._save_inject_method)
@@ -810,14 +815,12 @@ class DashboardWindow(QMainWindow):
         if not key.startswith("gsk_"):
             self.api_key_input.setStyleSheet(self.api_key_input.styleSheet() + "border: 1px solid #f87171;")
             return
-        if self.db:
-            self.db.save_setting("groq_api_key", key)
+        self.config.set("groq_api_key", key)
         self.api_key_input.setStyleSheet(self.api_key_input.styleSheet() + "border: 1px solid #4ade80;")
 
     def _save_inject_method(self):
         method = "clipboard" if self.inject_combo.currentIndex() == 0 else "type"
-        if self.db:
-            self.db.save_setting("inject_method", method)
+        self.config.set("inject_method", method)
 
     def refresh(self):
         """Call to reload data from DB."""
