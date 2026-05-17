@@ -310,16 +310,16 @@ class MikeEngine:
         import subprocess
         import sys
         import pathlib
+        import os
 
         NO_WINDOW = 0x08000000   # CREATE_NO_WINDOW
         DETACHED  = 0x00000008   # DETACHED_PROCESS
 
         try:
             env = os.environ.copy()
-            env.pop("_MEIPASS2", None)
-            env.pop("_MEIPASS", None)
-            env.pop("TCL_LIBRARY", None)
-            env.pop("TK_LIBRARY", None)
+            for k in list(env.keys()):
+                if k.startswith("_PYI") or k.startswith("_MEI") or k in ("TCL_LIBRARY", "TK_LIBRARY"):
+                    env.pop(k, None)
 
             if getattr(sys, "frozen", False):
                 # ── Frozen: reuse the same exe with --dashboard flag ──────────

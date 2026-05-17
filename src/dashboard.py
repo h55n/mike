@@ -932,10 +932,9 @@ class DashboardWindow(QMainWindow):
             if mike_exe.exists():
                 try:
                     env = os.environ.copy()
-                    env.pop("_MEIPASS2", None)
-                    env.pop("_MEIPASS", None)
-                    env.pop("TCL_LIBRARY", None)
-                    env.pop("TK_LIBRARY", None)
+                    for k in list(env.keys()):
+                        if k.startswith("_PYI") or k.startswith("_MEI") or k in ("TCL_LIBRARY", "TK_LIBRARY"):
+                            env.pop(k, None)
                     subprocess.Popen(
                         [str(mike_exe), "--startup"],
                         env=env,
