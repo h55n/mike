@@ -450,10 +450,10 @@ class DashboardWindow(QMainWindow):
                                 "margin-bottom: 4px;")
         layout.addWidget(mic_label)
 
-        kill_btn = QPushButton("⏹  Kill Mic")
+        kill_btn = QPushButton("⏹  Kill Mike")
         kill_btn.setObjectName("danger_btn")
         kill_btn.setFixedHeight(34)
-        kill_btn.setToolTip("Force-stop the microphone / exit live mode (sends KILL_MIC signal)")
+        kill_btn.setToolTip("Kill the Mike background app completely (sends KILL_MIC signal)")
         kill_btn.clicked.connect(self._kill_mic)
         layout.addWidget(kill_btn)
 
@@ -897,7 +897,7 @@ class DashboardWindow(QMainWindow):
         """Force-stop mic: sends KILL_MIC signal to main Mike process."""
         sent = self._send_mic_signal(b"KILL_MIC")
         if sent:
-            self._set_status("⏹ Mic killed", "#f87171")
+            self._set_status("⏹ Mike killed", "#f87171")
         else:
             self._set_status("⚠ Mike not running", "#fbbf24")
 

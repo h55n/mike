@@ -196,8 +196,10 @@ def main():
                     logger.info("Received OPEN_DASHBOARD signal")
                     engine.open_dashboard()
                 elif data == b"KILL_MIC":
-                    logger.info("Received KILL_MIC signal — force stopping mic")
-                    engine.force_stop_mic()
+                    logger.info("Received KILL_MIC signal — killing app")
+                    engine.shutdown()
+                    import os
+                    os._exit(0)
                 elif data == b"WAKE_MIC":
                     logger.info("Received WAKE_MIC signal — waking engine")
                     threading.Thread(target=engine.wake_mic, daemon=True).start()
