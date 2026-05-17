@@ -16,6 +16,7 @@
   - `WAKE_MIC` — calls `engine.wake_mic()` in a daemon thread.
 
 ### Fixed
+- **PyInstaller Subprocess Crashes ("Tcl data directory not found")**: Fixed a critical bug where launching or waking the app from the dashboard caused fatal PyInstaller extraction errors. Stripped `_MEIPASS` and `TCL_LIBRARY` environment variables before spawning child processes to prevent temporary folder collisions and file-locking issues.
 - **HUD × button debounce (continuous mode)**: `_on_stop_continuous` previously called `toggle_continuous()` which has a hard 2-second guard. If the user tapped × too soon after the mode started, the click was silently dropped. Fixed to call `engine._stop_continuous()` directly — no debounce, always works.
 - **HUD X button (recording/processing)**: `_on_cancel` now calls `engine.force_stop_mic()` instead of `cancel_recording()`. If the engine was in continuous mode (not PTT), the old cancel had no effect. Nuclear kill handles both.
 - **Startup registry — early registration**: `add_to_startup()` now runs immediately after Config/DB load (before engine build). Previously it ran at step 6, meaning a crash anywhere in between left the registry stale. Double-called at step 6 as belt-and-suspenders.

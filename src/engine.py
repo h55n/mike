@@ -315,12 +315,19 @@ class MikeEngine:
         DETACHED  = 0x00000008   # DETACHED_PROCESS
 
         try:
+            env = os.environ.copy()
+            env.pop("_MEIPASS2", None)
+            env.pop("_MEIPASS", None)
+            env.pop("TCL_LIBRARY", None)
+            env.pop("TK_LIBRARY", None)
+
             if getattr(sys, "frozen", False):
                 # ── Frozen: reuse the same exe with --dashboard flag ──────────
                 cmd = [sys.executable, "--dashboard"]
                 logger.info(f"Opening dashboard (frozen): {cmd}")
                 subprocess.Popen(
                     cmd,
+                    env=env,
                     creationflags=NO_WINDOW | DETACHED,
                 )
             else:
@@ -334,6 +341,7 @@ class MikeEngine:
                 logger.info(f"Opening dashboard (dev): {cmd}")
                 subprocess.Popen(
                     cmd,
+                    env=env,
                     creationflags=NO_WINDOW,
                 )
             logger.info("Dashboard subprocess launched")

@@ -931,8 +931,14 @@ class DashboardWindow(QMainWindow):
             )
             if mike_exe.exists():
                 try:
+                    env = os.environ.copy()
+                    env.pop("_MEIPASS2", None)
+                    env.pop("_MEIPASS", None)
+                    env.pop("TCL_LIBRARY", None)
+                    env.pop("TK_LIBRARY", None)
                     subprocess.Popen(
                         [str(mike_exe), "--startup"],
+                        env=env,
                         creationflags=0x08000000,  # CREATE_NO_WINDOW
                     )
                     self._set_status("▶ Launching Mike…", "#4ade80")
