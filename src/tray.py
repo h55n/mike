@@ -35,8 +35,26 @@ class TrayIcon:
         def mode_checked(mode):
             return lambda item: self.engine.mode == mode
 
+        def mic_status(item):
+            """Dynamic label showing current engine state."""
+            state = getattr(self.engine, 'state', 'idle')
+            labels = {
+                'idle':           '● Mic: Idle',
+                'recording_ptt':  '🔴 Mic: Recording (PTT)',
+                'recording_cont': '🔴 Mic: LIVE',
+                'paused_cont':    '⏸ Mic: Paused',
+                'processing':     '⧗ Mic: Processing',
+            }
+            return labels.get(state, f'Mic: {state}')
+
         menu = pystray.Menu(
             pystray.MenuItem("Mike", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem(mic_status, None, enabled=False),
+            pystray.MenuItem(
+                "⏹ Stop Mic / Kill Live",
+                lambda i, it: self._force_stop(),
+            ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem(
                 "Raw",
@@ -64,6 +82,13 @@ class TrayIcon:
 
         self._icon = pystray.Icon("mike", img, "Mike — Voice Dictation", menu)
         self._icon.run()
+
+    def _force_stop(self):
+        """Stop mic from tray — safe from any thread."""
+        try:
+            self.engine.force_stop_mic()
+        except Exception:
+            pass
 
     def _quit(self, icon, item):
         icon.stop()

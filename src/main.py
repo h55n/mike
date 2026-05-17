@@ -135,6 +135,15 @@ def main():
         _show_error("Mike — Startup Error", f"Failed to load config/database:\n\n{e}")
         sys.exit(1)
 
+    # ── 1b. Startup registry ────────────────────────────────────────────────
+    # Run early so registry is always current even if later steps crash.
+    try:
+        from startup import add_to_startup
+        add_to_startup()
+        logger.info("Startup registry refreshed (early)")
+    except Exception as e:
+        logger.warning(f"Startup registry (early): {e}")
+
     # ── 2. First-run wizard if no API key ──────────────────────────────────
     if not config.is_api_key_set():
         logger.info("No API key — showing setup wizard")
@@ -184,8 +193,14 @@ def main():
             try:
                 data, _ = lock_socket.recvfrom(1024)
                 if data == b"OPEN_DASHBOARD":
-                    logger.info("Received signal to open dashboard from second instance")
+                    logger.info("Received OPEN_DASHBOARD signal")
                     engine.open_dashboard()
+                elif data == b"KILL_MIC":
+                    logger.info("Received KILL_MIC signal — force stopping mic")
+                    engine.force_stop_mic()
+                elif data == b"WAKE_MIC":
+                    logger.info("Received WAKE_MIC signal — waking engine")
+                    threading.Thread(target=engine.wake_mic, daemon=True).start()
             except Exception as e:
                 logger.error(f"Signal listener error: {e}")
 
@@ -220,13 +235,13 @@ def main():
     except Exception as e:
         logger.error(f"Tray icon failed: {e}")
 
-    # ── 6. Startup registry refresh ───────────────────────────────────────
+    # ── 6. Startup registry refresh (secondary — belt-and-suspenders) ─────────
+    # Already ran early above; this second call ensures any late path changes land.
     try:
         from startup import add_to_startup
         add_to_startup()
-        logger.info("Startup registry refreshed")
-    except Exception as e:
-        logger.warning(f"Startup registry: {e}")
+    except Exception:
+        pass
 
     # ── 7. HUD (must be on main thread) ───────────────────────────────────
     try:

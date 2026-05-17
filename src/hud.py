@@ -496,8 +496,9 @@ class MikeHUD:
                 pass
 
     def _on_cancel(self, event):
+        """X button in recording/processing state — nuclear kill."""
         if self.engine:
-            self.engine.cancel_recording()
+            threading.Thread(target=self.engine.force_stop_mic, daemon=True).start()
         self._set_state_main("silent")
 
     def _on_confirm(self, event):
@@ -518,11 +519,9 @@ class MikeHUD:
             self.engine.open_dashboard()
 
     def _on_stop_continuous(self, event):
-        """Red X on continuous HUD — immediately stops continuous mode."""
+        """× button on continuous HUD — bypasses toggle debounce, stops immediately."""
         if self.engine:
-            threading.Thread(
-                target=self.engine.toggle_continuous, daemon=True
-            ).start()
+            threading.Thread(target=self.engine._stop_continuous, daemon=True).start()
 
     def _on_edit(self, event):
         if self.engine:

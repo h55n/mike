@@ -6,8 +6,10 @@ Design: ElevenLabs-inspired — warm near-black, off-white, pastel accents.
 
 import sys
 import os
-import datetime
+import socket
+import subprocess
 import pathlib
+import datetime
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QComboBox,
@@ -148,6 +150,30 @@ QPushButton#copy_btn:hover {
     border-color: #4ade80;
     color: #4ade80;
 }
+QPushButton#danger_btn {
+    background: #2a1010;
+    color: #f87171;
+    border: 1px solid #4a2020;
+    border-radius: 9999px;
+    padding: 8px 16px;
+    font-family: 'Segoe UI';
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#danger_btn:hover { background: #3a1515; border-color: #f87171; color: #ffffff; }
+QPushButton#danger_btn:pressed { background: #1a0a0a; }
+QPushButton#wake_btn {
+    background: #102a10;
+    color: #4ade80;
+    border: 1px solid #204a20;
+    border-radius: 9999px;
+    padding: 8px 16px;
+    font-family: 'Segoe UI';
+    font-size: 12px;
+    font-weight: 600;
+}
+QPushButton#wake_btn:hover { background: #153a15; border-color: #4ade80; color: #ffffff; }
+QPushButton#wake_btn:pressed { background: #0a1a0a; }
 """
 
 
@@ -417,9 +443,31 @@ class DashboardWindow(QMainWindow):
 
         layout.addStretch()
 
+        # ─── Mic Controls (kill switch + wake) ───────────────────────────
+        mic_label = QLabel("MIC CONTROLS")
+        mic_label.setStyleSheet("color: #3d3935; font-size: 9px; font-weight: 600; "
+                                "letter-spacing: 1.2px; font-family: 'Segoe UI'; "
+                                "margin-bottom: 4px;")
+        layout.addWidget(mic_label)
+
+        kill_btn = QPushButton("⏹  Kill Mic")
+        kill_btn.setObjectName("danger_btn")
+        kill_btn.setFixedHeight(34)
+        kill_btn.setToolTip("Force-stop the microphone / exit live mode (sends KILL_MIC signal)")
+        kill_btn.clicked.connect(self._kill_mic)
+        layout.addWidget(kill_btn)
+
+        wake_btn = QPushButton("▶  Wake Mike")
+        wake_btn.setObjectName("wake_btn")
+        wake_btn.setFixedHeight(34)
+        wake_btn.setToolTip("Reset Mike if glitched, or relaunch if not running")
+        wake_btn.clicked.connect(self._wake_mike)
+        layout.addWidget(wake_btn)
+
         # Status dot
         self.status_lbl = QLabel("● Active")
-        self.status_lbl.setStyleSheet("color: #4ade80; font-size: 11px; font-family: 'Segoe UI';")
+        self.status_lbl.setStyleSheet("color: #4ade80; font-size: 11px; "
+                                      "font-family: 'Segoe UI'; margin-top: 8px;")
         layout.addWidget(self.status_lbl)
 
         return sidebar
@@ -821,6 +869,77 @@ class DashboardWindow(QMainWindow):
     def _save_inject_method(self):
         method = "clipboard" if self.inject_combo.currentIndex() == 0 else "type"
         self.config.set("inject_method", method)
+
+    # ─── Mic Controls ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+    _MIKE_PORT = 44556  # Must match main.py PORT
+
+    def _send_mic_signal(self, signal: bytes) -> bool:
+        """Send UDP signal to the running Mike main process."""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.5)
+            s.sendto(signal, ("127.0.0.1", self._MIKE_PORT))
+            s.close()
+            return True
+        except Exception:
+            return False
+
+    def _set_status(self, text: str, color: str = "#4ade80", reset_ms: int = 3000):
+        self.status_lbl.setText(text)
+        self.status_lbl.setStyleSheet(
+            f"color: {color}; font-size: 11px; font-family: 'Segoe UI'; margin-top: 8px;"
+        )
+        if reset_ms:
+            QTimer.singleShot(reset_ms, lambda: self._set_status("● Active", "#4ade80", 0))
+
+    def _kill_mic(self):
+        """Force-stop mic: sends KILL_MIC signal to main Mike process."""
+        sent = self._send_mic_signal(b"KILL_MIC")
+        if sent:
+            self._set_status("⏹ Mic killed", "#f87171")
+        else:
+            self._set_status("⚠ Mike not running", "#fbbf24")
+
+    def _wake_mike(self):
+        """Reset/restart Mike: sends WAKE_MIC, or relaunches if process is dead."""
+        # 1. Try to probe if Mike is running (attempt to bind its port)
+        probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        mike_alive = False
+        try:
+            probe.bind(("127.0.0.1", self._MIKE_PORT))
+            # Bind succeeded → Mike is NOT running
+            mike_alive = False
+        except OSError:
+            # Port taken → Mike is running
+            mike_alive = True
+        finally:
+            try:
+                probe.close()
+            except Exception:
+                pass
+
+        if mike_alive:
+            # Mike is alive but possibly glitched — send wake signal
+            self._send_mic_signal(b"WAKE_MIC")
+            self._set_status("▶ Wake signal sent", "#4ade80")
+        else:
+            # Mike is dead — relaunch exe from install path
+            mike_exe = (
+                pathlib.Path(os.environ.get("LOCALAPPDATA", ""))
+                / "Programs" / "Mike" / "Mike.exe"
+            )
+            if mike_exe.exists():
+                try:
+                    subprocess.Popen(
+                        [str(mike_exe), "--startup"],
+                        creationflags=0x08000000,  # CREATE_NO_WINDOW
+                    )
+                    self._set_status("▶ Launching Mike…", "#4ade80")
+                except Exception as e:
+                    self._set_status(f"⚠ Launch failed: {e}", "#f87171")
+            else:
+                self._set_status("⚠ Mike.exe not found", "#f87171")
 
     def refresh(self):
         """Call to reload data from DB."""

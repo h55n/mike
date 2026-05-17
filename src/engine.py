@@ -344,6 +344,40 @@ class MikeEngine:
         """Open dashboard on settings tab."""
         self.open_dashboard()
 
+    # ─── Kill Switch ──────────────────────────────────────────────────────────
+
+    def force_stop_mic(self):
+        """Nuclear kill: stop ALL mic activity immediately, return to IDLE.
+        Bypasses all debounce guards. Safe to call from any thread or state.
+        """
+        logger.info("force_stop_mic called")
+        self._cont_stop.set()
+        self._ptt_active = False
+        try:
+            self.audio.stop_capture()
+        except Exception:
+            pass
+        self._set_state(EngineState.IDLE)
+        logger.info("Mic force-stopped → IDLE")
+
+    def wake_mic(self):
+        """Reset mic to a clean idle state so it's ready for use again.
+        Call this when Mike is stuck/glitched — clears all locks and events.
+        """
+        logger.info("wake_mic called — resetting engine state")
+        self.force_stop_mic()
+        # Replace stop/pause events with fresh ones so continuous mode
+        # can be started again cleanly after a force_stop.
+        import time as _t
+        _t.sleep(0.15)   # brief window for continuous thread to notice and exit
+        self._cont_stop  = threading.Event()
+        self._cont_pause = threading.Event()
+        self._ptt_active = False
+        self._last_toggle_t = 0.0   # reset debounce so toggles work immediately
+        logger.info("Mike wake complete — ready")
+        if self.hud:
+            self.hud.show_notification("✓ Mike ready", 1500)
+
     # ─── Cleanup ──────────────────────────────────────────────────────────────
 
     def shutdown(self):
