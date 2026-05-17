@@ -4,15 +4,15 @@
 
 ### Added
 - **Mic Kill Switch (Dashboard)**: Two new buttons in the dashboard sidebar under "MIC CONTROLS":
-  - **⏹ Kill Mic** (red) — sends `KILL_MIC` UDP signal to the main Mike process. Force-stops all mic activity (recording, PTT, continuous/live mode) instantly. Works even when HUD is unresponsive.
-  - **▶ Wake Mike** (green) — if Mike is running but glitched, sends `WAKE_MIC` signal to reset all engine state. If Mike's process is completely dead (crashed), automatically relaunches `Mike.exe` from the install directory.
+  - **⏹ Kill Mike** (red) — sends `KILL_MIC` UDP signal to the main Mike process. This now completely shuts down the Mike background engine (`os._exit(0)`) to ensure all processes and hooks are cleared. The dashboard UI remains open.
+  - **▶ Wake Mike** (green) — if Mike is running but glitched, sends `WAKE_MIC` signal to reset all engine state. If Mike's process is completely dead (crashed or intentionally killed), automatically relaunches `Mike.exe` from the install directory.
 - **Mic Kill Switch (System Tray)**: Right-click the tray icon now shows:
   - Live mic state label (e.g. `● Mic: Idle`, `🔴 Mic: LIVE`, `⏸ Mic: Paused`)
   - **⏹ Stop Mic / Kill Live** menu item — calls `force_stop_mic()` instantly from any state.
 - **`engine.force_stop_mic()`**: New nuclear kill method. Stops all recording/continuous threads, resets `_ptt_active`, calls `audio.stop_capture()`, forces state to IDLE. Bypasses all debounce guards.
 - **`engine.wake_mic()`**: New reset method. Calls `force_stop_mic()`, then replaces `_cont_stop`/`_cont_pause` events with fresh ones and resets the toggle debounce timer — so continuous mode can be started cleanly again.
 - **UDP Signals**: Main process signal listener now handles two new signals:
-  - `KILL_MIC` — calls `engine.force_stop_mic()`.
+  - `KILL_MIC` — cleanly shuts down the engine and exits the background application completely (`os._exit(0)`).
   - `WAKE_MIC` — calls `engine.wake_mic()` in a daemon thread.
 
 ### Fixed
@@ -21,8 +21,8 @@
 - **Startup registry — early registration**: `add_to_startup()` now runs immediately after Config/DB load (before engine build). Previously it ran at step 6, meaning a crash anywhere in between left the registry stale. Double-called at step 6 as belt-and-suspenders.
 
 ### Changed
-- **Dashboard sidebar**: Added "MIC CONTROLS" section with Kill Mic and Wake Mike buttons above the status dot.
-- **Dashboard status feedback**: Status dot shows contextual messages (e.g. "⏹ Mic killed", "▶ Wake signal sent", "⚠ Mike not running") that auto-reset to "● Active" after 3 seconds.
+- **Dashboard sidebar**: Added "MIC CONTROLS" section with Kill Mike and Wake Mike buttons above the status dot.
+- **Dashboard status feedback**: Status dot shows contextual messages (e.g. "⏹ Mike killed", "▶ Wake signal sent", "⚠ Mike not running") that auto-reset to "● Active" after 3 seconds.
 - **Build**: Version bumped to `2.1.0`.
 
 ---
