@@ -76,11 +76,14 @@ class MikeEngine:
     # ─── PTT (Push-to-Talk) ───────────────────────────────────────────────────
 
     def start_recording(self):
-        """Called by hotkey listener on Ctrl+Win press."""
+        """Called by hotkey listener on Ctrl+Shift press."""
         with self._state_lock:
-            if self.state != EngineState.IDLE:
+            # Only start if truly idle — block if processing or already recording
+            if self.state not in (EngineState.IDLE,):
+                logger.debug(f"start_recording ignored — state is {self.state}")
                 return
             if self._ptt_active:
+                logger.debug("start_recording ignored — _ptt_active already True")
                 return
             self._ptt_active = True
 
@@ -90,15 +93,18 @@ class MikeEngine:
         self.audio.start_capture(level_callback=self._on_audio_level)
 
     def stop_and_transcribe(self):
-        """Called by hotkey listener on Ctrl+Win release, or confirm button."""
+        """Called by hotkey listener on Ctrl+Shift release, or confirm button."""
         with self._state_lock:
+            if self.state == EngineState.IDLE:
+                self._ptt_active = False
+                return
             if self.state not in (EngineState.RECORDING_PTT, EngineState.RECORDING_CONT):
                 self._ptt_active = False
                 return
             if not self._ptt_active and self.state == EngineState.RECORDING_PTT:
                 return
             self._ptt_active = False
-            current_state = self.state
+            current_state = self.state  # noqa: F841
 
         logger.info("PTT stop → queuing transcription")
         audio_buf = self.audio.stop_capture()

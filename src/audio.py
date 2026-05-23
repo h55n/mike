@@ -24,8 +24,8 @@ DTYPE        = "int16"
 # Voice activity threshold — frames below this RMS are "silence"
 # Helps filter out typing sounds, fan noise, etc. (0–32767 scale)
 SILENCE_THRESHOLD = 300   # Only count frames clearly above ambient noise
-MIN_VOICE_FRAMES  = 6     # Need at least 6 above-threshold chunks (~0.4s of speech)
-MIN_AVG_RMS       = 100   # Entire chunk must average at least this RMS (rejects silent rooms)
+MIN_VOICE_FRAMES  = 4     # Need at least 4 above-threshold chunks (~0.25s of speech)
+MIN_AVG_RMS       = 80    # Entire chunk must average at least this RMS (rejects silent rooms)
 
 
 class AudioCapture:
@@ -130,7 +130,12 @@ class AudioCapture:
     def _audio_callback(self, indata, frames, time_info, status):
         """Called by sounddevice for each audio chunk."""
         if status:
-            logger.warning(f"Audio status: {status}")
+            # Input overflow is normal when processing is slow — log at DEBUG only,
+            # don't warn the user; just keep capturing.
+            if "input overflow" in str(status).lower():
+                logger.debug(f"Audio status: {status}")
+            else:
+                logger.warning(f"Audio status: {status}")
 
         if not self._recording:
             return

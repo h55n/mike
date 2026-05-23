@@ -1,5 +1,30 @@
 # Mike — Changelog
 
+## [v2.2.0] — 2026-05-23 — Hotkey Reliability & Production Polish
+
+### Fixed (Critical)
+- **Ghost key PTT triggers**: The single biggest bug — when another app stole focus mid-hold, pynput missed the key-up event and left Ctrl/Shift permanently in the `_pressed` set. Any subsequent keypress (ANY key) would then immediately fire PTT recording. Fixed by adding a **Win32 `GetAsyncKeyState` physical verification** layer that confirms keys are actually held on hardware before PTT commits.
+- **PTT fires on just Ctrl (or just Shift)**: Was possible when ghost keys accumulated over multiple focus changes. The physical verification ensures both Ctrl AND Shift must be physically down simultaneously.
+- **Stuck recording (infinite loop)**: If the key-up event for Ctrl or Shift was missed entirely, the app would record forever with no way to stop it except Kill Mike. Fixed with a **30-second PTT watchdog timer** that auto-releases and transcribes if no key-up arrives.
+- **Audio `input overflow` spam**: The log was flooding with WARNING-level overflow messages every few seconds during processing. Overflow is a normal artifact of audio buffering — now logged at DEBUG level only.
+- **Double PTT fires from rapid key presses**: Debounce raised from 200 ms → 400 ms to eliminate rapid double-starts visible in the logs.
+- **`shift_l` not recognized on some keyboards**: Added `keyboard.Key.shift_l` to the SHIFT_KEYS set alongside `shift` and `shift_r`. Some keyboards and layouts emit the explicit `shift_l` variant.
+- **Continuous mode × button unresponsive**: Direct `_stop_continuous()` call (no debounce) was already in place; confirmed working correctly.
+
+### Added
+- **Ghost-key cleanup background thread**: Every 500 ms, cross-checks the pynput `_pressed` set against Win32 physical state and evicts any stale entries. Also auto-releases any stuck PTT that Win32 confirms is no longer physically held.
+- **PTT watchdog timer (30 s safety net)**: Prevents permanently-stuck silent recording sessions when key-up events are missed due to focus changes, screen locks, or OS-level interrupts.
+- **Physical key re-verification on release**: The `_on_release` handler now double-checks via `GetAsyncKeyState` before stopping PTT — prevents stopping when an unrelated key is released.
+- **Ctrl+Shift+Space window extended**: 120 ms → 200 ms gives more time for Space to arrive and correctly route to continuous toggle instead of PTT.
+
+### Changed
+- **Minimum PTT debounce raised**: 200 ms → 400 ms.
+- **Minimum voice frames lowered**: 6 → 4 (~0.25 s of speech). Short words like "yes", "no", "go" were sometimes being dropped.
+- **Minimum avg RMS threshold lowered**: 100 → 80 to capture quieter speakers more reliably.
+- **Build**: Version bumped to `2.2.0`.
+
+---
+
 ## [v2.1.0] — 2026-05-17 — Mic Kill Switch & Startup Fix
 
 ### Added
