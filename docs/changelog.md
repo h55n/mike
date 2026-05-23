@@ -1,5 +1,12 @@
 # Mike — Changelog
 
+## [v2.2.1] — 2026-05-23 — Silent Crash Hotfix
+
+### Fixed
+- **PyInstaller Windowless Crash**: Fixed a critical bug where `Mike.exe` crashed silently and immediately on launch. PyInstaller's windowless mode (`--noconsole`) nullifies `sys.stdout`. The Python `logging.StreamHandler(sys.stdout)` constructor was throwing a fatal exception before any logs could be written to disk. The handler is now safely conditionally added only if `sys.stdout` is present.
+
+---
+
 ## [v2.2.0] — 2026-05-23 — Hotkey Reliability & Production Polish
 
 ### Fixed (Critical)

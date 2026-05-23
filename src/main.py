@@ -47,13 +47,14 @@ if sys.stdout and hasattr(sys.stdout, "buffer"):
 LOG_DIR = pathlib.Path.home() / "AppData" / "Local" / "Mike"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
+_handlers = [logging.FileHandler(LOG_DIR / "mike.log", encoding="utf-8", mode="a")]
+if sys.stdout is not None:
+    _handlers.append(logging.StreamHandler(sys.stdout))
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(LOG_DIR / "mike.log", encoding="utf-8", mode="a"),
-    ],
+    handlers=_handlers,
 )
 logger = logging.getLogger("mike.main")
 

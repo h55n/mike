@@ -9,7 +9,7 @@ Set-Location $ProjectRoot
 
 $AppName    = "Mike"
 $ExeName    = "Mike.exe"
-$Version    = "2.2.0"
+$Version    = "2.2.1"
 $Publisher  = "Antigravity"
 
 Write-Host ""
