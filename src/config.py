@@ -12,7 +12,7 @@ CONFIG_PATH = pathlib.Path.home() / "AppData" / "Local" / "Mike" / "config.json"
 
 DEFAULTS = {
     "groq_api_key":             "",
-    "default_mode":             "raw",
+    "default_mode":             "semi_formal",
     "hud_opacity":              0.95,
     "hud_x":                    None,
     "hud_y":                    None,
@@ -39,6 +39,11 @@ class Config:
 
     def get(self, key: str, default=None):
         return self._data.get(key, default if default is not None else DEFAULTS.get(key))
+
+    def reload(self):
+        """Reload config from disk while preserving defaults for missing keys."""
+        self._data = dict(DEFAULTS)
+        self._load()
 
     def set(self, key: str, value):
         self._data[key] = value

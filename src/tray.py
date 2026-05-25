@@ -5,6 +5,7 @@ import threading
 import logging
 import pystray
 from PIL import Image, ImageDraw
+from paths import asset_path
 
 logger = logging.getLogger("mike.tray")
 
@@ -12,7 +13,7 @@ logger = logging.getLogger("mike.tray")
 def _make_icon_image() -> Image.Image:
     """Generate a simple tray icon programmatically if assets not found."""
     try:
-        return Image.open("assets/tray_icon.png").resize((64, 64))
+        return Image.open(asset_path("tray_icon.png")).resize((64, 64))
     except Exception:
         img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)

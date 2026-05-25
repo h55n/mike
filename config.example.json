@@ -1,6 +1,10 @@
 {
-  "groq_api_key": "YOUR_GROQ_API_KEY_HERE",
-  "mode": "semi_formal",
+  "groq_api_key": "",
+  "default_mode": "semi_formal",
+  "hud_opacity": 0.85,
+  "hud_x": null,
+  "hud_y": null,
   "continuous_chunk_seconds": 5,
-  "language": "en"
+  "transcription_language": "en",
+  "inject_method": "clipboard"
 }

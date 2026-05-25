@@ -20,12 +20,15 @@ import logging
 import pathlib
 import ctypes
 import socket
+from paths import app_root, src_root
 
 # ─── Force CWD to script dir (fixes relative imports on registry/startup launch)
-_SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
-os.chdir(_SCRIPT_DIR)
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
+_APP_ROOT = app_root()
+_SRC_DIR = src_root()
+os.chdir(_APP_ROOT)
+for _path in (str(_SRC_DIR), str(_APP_ROOT)):
+    if _path not in sys.path:
+        sys.path.insert(0, _path)
 
 # ─── DPI awareness (must be before any window creation) ───────────────────────
 try:
@@ -47,7 +50,11 @@ if sys.stdout and hasattr(sys.stdout, "buffer"):
 LOG_DIR = pathlib.Path.home() / "AppData" / "Local" / "Mike"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
-_handlers = [logging.FileHandler(LOG_DIR / "mike.log", encoding="utf-8", mode="a")]
+_handlers = []
+try:
+    _handlers.append(logging.FileHandler(LOG_DIR / "mike.log", encoding="utf-8", mode="a"))
+except OSError:
+    pass
 if sys.stdout is not None:
     _handlers.append(logging.StreamHandler(sys.stdout))
 

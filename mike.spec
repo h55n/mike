@@ -9,7 +9,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('assets',    'assets'),
-        ('config.json', '.'),
+        ('config.example.json', '.'),
         ('src',       'src'),        # include src/ so dashboard subprocess can find modules
     ],
     hiddenimports=[
@@ -34,6 +34,7 @@ a = Analysis(
         # DB
         'sqlite3',
         # App modules (setup wizard + sounds)
+        'paths',
         'setup_wizard',
         'sounds',
         'winsound',

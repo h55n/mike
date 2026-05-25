@@ -206,18 +206,24 @@ pyautogui.typewrite() → text appears at cursor
 ```json
 {
   "groq_api_key": "gsk_...",
-  "mode": "semi_formal",
+  "default_mode": "semi_formal",
+  "hud_opacity": 0.85,
+  "hud_x": null,
+  "hud_y": null,
   "continuous_chunk_seconds": 5,
-  "language": "en"
+  "transcription_language": "en",
+  "inject_method": "clipboard"
 }
 ```
 
 | Key | Values | Default |
 |-----|--------|---------|
 | `groq_api_key` | Your Groq API key | — |
-| `mode` | `raw` / `semi_formal` / `polished` | `semi_formal` |
+| `default_mode` | `raw` / `semi_formal` / `polished` | `semi_formal` |
+| `hud_opacity` | `0.1`-`1.0` | `0.85` |
 | `continuous_chunk_seconds` | `3`–`10` | `5` |
-| `language` | `en` / `hi` / `ur` / any Whisper lang code | `en` |
+| `transcription_language` | `en` / `hi` / `ur` / any Whisper lang code | `en` |
+| `inject_method` | `clipboard` / `type` | `clipboard` |
 
 ---
 

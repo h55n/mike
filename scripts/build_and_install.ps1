@@ -91,6 +91,7 @@ Write-Host "  [5/6] Installing Mike..." -ForegroundColor White
 $InstallDir = Join-Path $env:LOCALAPPDATA "Programs\$AppName"
 $DestExe    = Join-Path $InstallDir $ExeName
 $ConfigSrc  = Join-Path $ProjectRoot "config.json"
+$ConfigExample = Join-Path $ProjectRoot "config.example.json"
 $ConfigDir  = Join-Path $env:LOCALAPPDATA "Mike"
 $ConfigDest = Join-Path $ConfigDir "config.json"
 $IconDest   = Join-Path $InstallDir "mike.ico"
@@ -108,7 +109,13 @@ if (Test-Path $IcoPath) {
 # Config - preserve existing (don't wipe API key)
 New-Item -ItemType Directory -Force -Path $ConfigDir | Out-Null
 if (-not (Test-Path $ConfigDest)) {
-    Copy-Item -Path $ConfigSrc -Destination $ConfigDest -Force
+    if (Test-Path $ConfigSrc) {
+        Copy-Item -Path $ConfigSrc -Destination $ConfigDest -Force
+    } elseif (Test-Path $ConfigExample) {
+        Copy-Item -Path $ConfigExample -Destination $ConfigDest -Force
+    } else {
+        Write-Host "        No config template found - app will create defaults on first run" -ForegroundColor Yellow
+    }
     Write-Host "        Config created - set Groq API key in: $ConfigDest" -ForegroundColor Yellow
 } else {
     Write-Host "        Existing config preserved" -ForegroundColor Green

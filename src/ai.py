@@ -80,13 +80,17 @@ class AIProcessor:
         self.config  = config
         self.filters = filters   # TextFilter instance for output cleaning
         self._client = None
+        self._client_api_key = None
 
     def _get_client(self) -> Groq:
+        if hasattr(self.config, "reload"):
+            self.config.reload()
         api_key = self.config.get("groq_api_key", "")
         if not api_key or not api_key.startswith("gsk_"):
             raise ValueError("Groq API key not configured.")
-        if self._client is None:
+        if self._client is None or self._client_api_key != api_key:
             self._client = Groq(api_key=api_key)
+            self._client_api_key = api_key
         return self._client
 
     def _call_llm(self, text: str, system_prompt: str) -> str:
@@ -154,3 +158,4 @@ class AIProcessor:
     def invalidate_client(self):
         """Force re-connect after API key change."""
         self._client = None
+        self._client_api_key = None

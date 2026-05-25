@@ -40,17 +40,21 @@ class TranscriptionService:
     def __init__(self, config):
         self.config  = config
         self._client = None
+        self._client_api_key = None
 
     def _get_client(self) -> Groq:
         """Lazy-init Groq client."""
+        if hasattr(self.config, "reload"):
+            self.config.reload()
         api_key = self.config.get("groq_api_key", "")
         if not api_key or not api_key.startswith("gsk_"):
             raise ValueError(
                 "Groq API key not configured. "
                 "Open the dashboard → Settings and enter your key from console.groq.com"
             )
-        if self._client is None:
+        if self._client is None or self._client_api_key != api_key:
             self._client = Groq(api_key=api_key)
+            self._client_api_key = api_key
         return self._client
 
     def transcribe(self, audio_buffer) -> str:
@@ -66,7 +70,7 @@ class TranscriptionService:
                 response = client.audio.transcriptions.create(
                     file=("audio.wav", audio_buffer.read()),
                     model="whisper-large-v3-turbo",   # Fast + accurate
-                    language="en",
+                    language=self.config.get("transcription_language", "en"),
                     response_format="text",
                     # NO prompt= parameter — it was leaking into transcripts
                     temperature=0.0,
@@ -115,3 +119,4 @@ class TranscriptionService:
 
     def invalidate_client(self):
         self._client = None
+        self._client_api_key = None

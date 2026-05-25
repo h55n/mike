@@ -9,13 +9,15 @@ Handles two cases:
 import sys
 import logging
 import pathlib
+from paths import app_root, src_root
 
 logger = logging.getLogger("mike.startup")
 
 REG_KEY  = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_NAME = "Mike"
 
-_PROJECT_DIR = str(pathlib.Path(__file__).resolve().parent)
+_PROJECT_DIR = app_root()
+_SRC_DIR = src_root()
 
 
 def _build_command() -> str:
@@ -31,9 +33,8 @@ def _build_command() -> str:
     if not pythonw.exists():
         pythonw = exe  # fallback to python.exe
 
-    main_py = pathlib.Path(_PROJECT_DIR) / "main.py"
-    # Use /D to switch drive too (e.g. F:\)
-    return f'cmd /c "cd /D "{_PROJECT_DIR}" && "{pythonw}" "{main_py}" --startup"'
+    main_py = _SRC_DIR / "main.py"
+    return f'"{pythonw}" "{main_py}" --startup'
 
 
 def add_to_startup():

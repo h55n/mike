@@ -11,6 +11,7 @@ import subprocess
 import pathlib
 import datetime
 import logging
+from paths import app_root, asset_path
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QComboBox,
@@ -389,7 +390,7 @@ class DashboardWindow(QMainWindow):
         self.resize(1000, 700)
         self.setStyleSheet(QSS_MAIN)
         # Set mic icon instead of Python default
-        _ico = pathlib.Path(__file__).parent / "assets" / "mike.ico"
+        _ico = asset_path("mike.ico")
         if _ico.exists():
             self.setWindowIcon(QIcon(str(_ico)))
         self._build_ui()
@@ -1000,10 +1001,12 @@ if __name__ == "__main__":
     # Ensure project dir is in path (needed when launched as subprocess)
     import pathlib
     _here = pathlib.Path(__file__).resolve().parent
-    if str(_here) not in sys.path:
-        sys.path.insert(0, str(_here))
+    _root = app_root()
+    for _path in (str(_here), str(_root)):
+        if _path not in sys.path:
+            sys.path.insert(0, _path)
     import os
-    os.chdir(_here)
+    os.chdir(_root)
 
     db_ref = None
     if len(sys.argv) > 1 and sys.argv[1]:
