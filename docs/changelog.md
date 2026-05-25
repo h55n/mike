@@ -1,6 +1,29 @@
 # Mike — Changelog
 
+## [v2.3.0] — 2026-05-25 — Full Audit Pass
+
+### Fixed (Security)
+- **API key exposed in committed config.json**: The live Groq API key was committed to the repository. The committed `config.json` is now blanked to a template. The `.gitignore` already excludes the file; the live key lives only in `%LOCALAPPDATA%\Mike\config.json`.
+
+### Fixed (Critical)
+- **`setup_wizard.py` missing**: Referenced in `main.py` but the file did not exist. First-run setup would silently fail (caught in a try/except), leaving users with no API key and a broken app. A full PyQt6 first-run wizard is now implemented.
+- **`datetime.fromisoformat()` crash on session rows**: SQLite stores timestamps as `"YYYY-MM-DD HH:MM:SS"` (space separator). Python < 3.11 requires `"T"` as the ISO 8601 separator. Every `SessionRow` in the dashboard could crash on render, silently hiding all session history. Fixed with `.replace(" ", "T")` normalization.
+
+### Fixed (Audio / UX)
+- **PTT audio feedback missing**: `sounds.play_start()` / `play_stop()` were implemented but never called. PTT start/stop now plays the chimes as intended.
+- **HUD position not restored**: HUD saves `hud_x`/`hud_y` on drag but never read them back at startup — the HUD always appeared centered. Position is now restored from settings on launch, clamped to screen bounds.
+
+### Fixed (Hygiene)
+- **`print()` used in production paths**: `sounds.py` and `dashboard.py` used `print()` for error reporting. All replaced with `logging` so errors appear in `mike.log`.
+
+### Changed
+- **PyInstaller spec updated**: Added `setup_wizard`, `sounds`, `winsound` as hidden imports; bundled `src/` into the exe so the dashboard subprocess can locate all modules.
+- **`.gitignore` extended**: `Mike-Console.spec`, `_check_syntax.py`, `error.txt` added.
+
+---
+
 ## [v2.2.1] — 2026-05-23 — Silent Crash Hotfix
+
 
 ### Fixed
 - **PyInstaller Windowless Crash**: Fixed a critical bug where `Mike.exe` crashed silently and immediately on launch. PyInstaller's windowless mode (`--noconsole`) nullifies `sys.stdout`. The Python `logging.StreamHandler(sys.stdout)` constructor was throwing a fatal exception before any logs could be written to disk. The handler is now safely conditionally added only if `sys.stdout` is present.

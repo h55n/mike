@@ -10,6 +10,7 @@ import socket
 import subprocess
 import pathlib
 import datetime
+import logging
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QComboBox,
@@ -24,6 +25,8 @@ from PyQt6.QtGui import (
     QFont, QColor, QPalette, QIcon, QPixmap, QPainter, QBrush, QPen,
     QLinearGradient, QFontDatabase,
 )
+
+logger = logging.getLogger("mike.dashboard")
 
 
 # ─── Design Tokens ───────────────────────────────────────────────────────────
@@ -269,8 +272,13 @@ class SessionRow(QWidget):
         header.setSpacing(10)
 
         # Timestamp
-        ts = datetime.datetime.fromisoformat(str(s.get("created_at", "")))
-        time_str = ts.strftime("%b %d  %H:%M") if isinstance(ts, datetime.datetime) else "—"
+        ts_raw = str(s.get("created_at", ""))
+        try:
+            # SQLite stores "YYYY-MM-DD HH:MM:SS"; fromisoformat needs "T" sep on Py<3.11
+            ts = datetime.datetime.fromisoformat(ts_raw.replace(" ", "T"))
+        except Exception:
+            ts = None
+        time_str = ts.strftime("%b %d  %H:%M") if ts else "—"
         ts_lbl = QLabel(time_str)
         ts_lbl.setStyleSheet("color: #78716c; font-size: 12px; font-family: 'Segoe UI';")
 
@@ -759,7 +767,7 @@ class DashboardWindow(QMainWindow):
             self._refresh_session_list(sessions)
             self._refresh_recent(sessions[:5])
         except Exception as e:
-            print(f"[Dashboard] DB error: {e}")
+            logger.error(f"[Dashboard] DB error: {e}")
 
     def _load_mock_data(self):
         """Show placeholder data when no DB connected."""
@@ -954,7 +962,7 @@ class DashboardWindow(QMainWindow):
 def _session_date(s: dict) -> datetime.date:
     try:
         ts = s.get("created_at", "")
-        return datetime.datetime.fromisoformat(str(ts)).date()
+        return datetime.datetime.fromisoformat(str(ts).replace(" ", "T")).date()
     except Exception:
         return datetime.date.today()
 
@@ -1003,7 +1011,7 @@ if __name__ == "__main__":
             from db import Database
             db_ref = Database(path=pathlib.Path(sys.argv[1]))
         except Exception as e:
-            print(f"[Dashboard] DB load error: {e}")
+            logger.error(f"[Dashboard] DB load error: {e}")
 
     app = QApplication(sys.argv)
     app.setFont(QFont("Segoe UI", 10))

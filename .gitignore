@@ -38,3 +38,8 @@ desktop.ini
 # -- Changelog ----------------------------------------------------------------
 changelog.md
 docs/changelog.md
+
+# -- Dev/debug artifacts ------------------------------------------------------
+Mike-Console.spec
+_check_syntax.py
+error.txt

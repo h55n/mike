@@ -131,8 +131,24 @@ class MikeHUD:
     def _position_window(self):
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
-        x = (sw - self._current_w) // 2
-        y = sh - TASKBAR_H - self._current_h - MARGIN_BOTTOM
+        default_x = (sw - self._current_w) // 2
+        default_y = sh - TASKBAR_H - self._current_h - MARGIN_BOTTOM
+
+        # Restore saved position if engine/settings available
+        x, y = default_x, default_y
+        if self.engine and hasattr(self.engine, "settings"):
+            try:
+                sx = self.engine.settings.get("hud_x")
+                sy = self.engine.settings.get("hud_y")
+                if sx is not None and sy is not None:
+                    x = int(sx)
+                    y = int(sy)
+                    # Clamp to screen bounds
+                    x = max(0, min(x, sw - self._current_w))
+                    y = max(0, min(y, sh - self._current_h))
+            except Exception:
+                x, y = default_x, default_y
+
         self.root.geometry(f"{self._current_w}x{self._current_h}+{x}+{y}")
 
     # ─── Canvas UI Builder ────────────────────────────────────────────────────

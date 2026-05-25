@@ -1,4 +1,4 @@
-# mike.spec — PyInstaller build spec
+# mike.spec — PyInstaller build spec (one-file mode)
 # Build via: build_and_install.ps1  (do NOT run pyinstaller directly)
 
 import sys
@@ -10,6 +10,7 @@ a = Analysis(
     datas=[
         ('assets',    'assets'),
         ('config.json', '.'),
+        ('src',       'src'),        # include src/ so dashboard subprocess can find modules
     ],
     hiddenimports=[
         # Windows backend
@@ -32,6 +33,10 @@ a = Analysis(
         'pystray._win32',
         # DB
         'sqlite3',
+        # App modules (setup wizard + sounds)
+        'setup_wizard',
+        'sounds',
+        'winsound',
     ],
     hookspath=[],
     runtime_hooks=[],

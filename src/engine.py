@@ -9,6 +9,12 @@ import time
 import queue
 import logging
 
+try:
+    from sounds import play_start, play_stop
+except Exception:
+    def play_start(): pass
+    def play_stop():  pass
+
 logger = logging.getLogger("mike.engine")
 
 
@@ -90,6 +96,7 @@ class MikeEngine:
         logger.info("PTT start")
         self._set_state(EngineState.RECORDING_PTT)
         self._session_start = time.time()
+        play_start()
         self.audio.start_capture(level_callback=self._on_audio_level)
 
     def stop_and_transcribe(self):
@@ -107,6 +114,7 @@ class MikeEngine:
             current_state = self.state  # noqa: F841
 
         logger.info("PTT stop → queuing transcription")
+        play_stop()
         audio_buf = self.audio.stop_capture()
         duration  = time.time() - (self._session_start or time.time())
 
