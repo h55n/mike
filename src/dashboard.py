@@ -74,16 +74,21 @@ QScrollArea {
     border: none;
 }
 QScrollBar:vertical {
-    background: #1c1917;
-    width: 6px;
-    border-radius: 3px;
+    background: #161412;
+    width: 5px;
+    border-radius: 2px;
+    margin: 2px 0;
 }
 QScrollBar::handle:vertical {
     background: #3d3935;
-    border-radius: 3px;
-    min-height: 30px;
+    border-radius: 2px;
+    min-height: 24px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #5a5652;
 }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
 QLineEdit {
     background: #1c1917;
     color: #f5f4f2;
@@ -92,9 +97,11 @@ QLineEdit {
     padding: 8px 14px;
     font-family: 'Segoe UI';
     font-size: 13px;
+    selection-background-color: #4a4540;
 }
 QLineEdit:focus {
-    border: 1px solid #4a4540;
+    border: 1px solid #5a5450;
+    background: #201d1a;
 }
 QComboBox {
     background: #1c1917;
@@ -105,12 +112,18 @@ QComboBox {
     font-family: 'Segoe UI';
     font-size: 12px;
 }
+QComboBox:hover {
+    border: 1px solid #4a4540;
+    color: #d6d3d1;
+}
 QComboBox::drop-down { border: none; }
 QComboBox QAbstractItemView {
     background: #1c1917;
     color: #f5f4f2;
     border: 1px solid #3d3935;
     selection-background-color: #2e2b28;
+    selection-color: #f5f4f2;
+    padding: 4px;
 }
 QPushButton#pill_btn {
     background: #2a2723;
@@ -123,7 +136,11 @@ QPushButton#pill_btn {
     font-size: 13px;
     font-weight: 500;
 }
-QPushButton#pill_btn:hover { background: #3d3935; color: #ffffff; border-color: #6a6460; }
+QPushButton#pill_btn:hover {
+    background: #3d3935;
+    color: #ffffff;
+    border-color: #6a6460;
+}
 QPushButton#pill_btn:pressed { background: #1c1917; }
 QPushButton#ghost_btn {
     background: transparent;
@@ -137,9 +154,10 @@ QPushButton#ghost_btn {
 }
 QPushButton#ghost_btn:hover {
     color: #f5f4f2;
-    border-color: #4a4540;
+    border-color: #5a5450;
     background: #1c1917;
 }
+QPushButton#ghost_btn:pressed { background: #111110; }
 QPushButton#copy_btn {
     background: #1c1917;
     color: #78716c;
@@ -150,7 +168,7 @@ QPushButton#copy_btn {
     font-size: 11px;
 }
 QPushButton#copy_btn:hover {
-    color: #f5f4f2;
+    background: #1e2a1e;
     border-color: #4ade80;
     color: #4ade80;
 }
@@ -164,7 +182,11 @@ QPushButton#danger_btn {
     font-size: 12px;
     font-weight: 600;
 }
-QPushButton#danger_btn:hover { background: #3a1515; border-color: #f87171; color: #ffffff; }
+QPushButton#danger_btn:hover {
+    background: #3a1515;
+    border-color: #f87171;
+    color: #ffffff;
+}
 QPushButton#danger_btn:pressed { background: #1a0a0a; }
 QPushButton#wake_btn {
     background: #102a10;
@@ -176,51 +198,83 @@ QPushButton#wake_btn {
     font-size: 12px;
     font-weight: 600;
 }
-QPushButton#wake_btn:hover { background: #153a15; border-color: #4ade80; color: #ffffff; }
+QPushButton#wake_btn:hover {
+    background: #153a15;
+    border-color: #4ade80;
+    color: #ffffff;
+}
 QPushButton#wake_btn:pressed { background: #0a1a0a; }
+QDateEdit {
+    background: #1c1917;
+    color: #a8a29e;
+    border: 1px solid #2e2b28;
+    border-radius: 8px;
+    padding: 5px;
+    font-family: 'Segoe UI';
+    font-size: 12px;
+}
+QDateEdit:hover { border-color: #4a4540; }
+QCalendarWidget {
+    background: #1c1917;
+    color: #f5f4f2;
+}
+QCalendarWidget QAbstractItemView {
+    background: #1c1917;
+    color: #f5f4f2;
+    selection-background-color: #3d3935;
+}
 """
+
 
 
 class StatCard(QWidget):
     def __init__(self, label, value, accent=None):
         super().__init__()
         self.accent = accent or MUTED
-        self.setFixedHeight(88)
+        self.setFixedHeight(92)
+        self.setCursor(Qt.CursorShape.ArrowCursor)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(4)
+        layout.setContentsMargins(20, 18, 20, 16)
+        layout.setSpacing(5)
 
         self.val_label = QLabel(str(value))
         self.val_label.setStyleSheet(f"""
             font-family: 'Segoe UI';
-            font-size: 28px;
-            font-weight: 300;
+            font-size: 30px;
+            font-weight: 200;
             color: #f5f4f2;
-            letter-spacing: -0.5px;
+            letter-spacing: -1px;
         """)
         self.lbl_label = QLabel(label)
         self.lbl_label.setStyleSheet(f"""
             font-family: 'Segoe UI';
-            font-size: 11px;
-            font-weight: 500;
+            font-size: 10px;
+            font-weight: 600;
             color: {MUTED};
-            letter-spacing: 1px;
-            text-transform: uppercase;
+            letter-spacing: 1.5px;
         """)
         layout.addWidget(self.val_label)
         layout.addWidget(self.lbl_label)
 
-        self.setStyleSheet(f"""
+        self._base_style = f"""
             StatCard {{
                 background: #1c1917;
-                border: 1px solid #2e2b28;
+                border: 1px solid #2a2723;
                 border-radius: 14px;
                 border-left: 3px solid {self.accent};
             }}
-        """)
+            StatCard:hover {{
+                background: #222019;
+                border: 1px solid #3d3935;
+                border-left: 3px solid {self.accent};
+            }}
+        """
+        self.setStyleSheet(self._base_style)
 
     def update_value(self, value):
         self.val_label.setText(str(value))
+
+
 
 
 class ModeBadge(QLabel):
@@ -373,7 +427,7 @@ class SessionRow(QWidget):
         self.full_text.setVisible(self.expanded)
         self.copy_row_widget.setVisible(self.expanded)
         self.preview_lbl.setVisible(not self.expanded)
-        self.arrow.setText("v" if self.expanded else ">")
+        self.arrow.setText("\u2304" if self.expanded else "\u203a")   # ⌄ / ›
         self.setStyleSheet(self.styleSheet())
 
 
@@ -867,13 +921,22 @@ class DashboardWindow(QMainWindow):
 
     # ─── Settings Actions ─────────────────────────────────────────────────────
 
+    # Base QLineEdit style (used for clean replacement, not accumulation)
+    _KEY_INPUT_BASE = (
+        "background: #1c1917; color: #f5f4f2; border-radius: 10px; "
+        "padding: 8px 14px; font-family: 'Segoe UI'; font-size: 13px;"
+    )
+
     def _save_api_key(self):
         key = self.api_key_input.text().strip()
         if not key.startswith("gsk_"):
-            self.api_key_input.setStyleSheet(self.api_key_input.styleSheet() + "border: 1px solid #f87171;")
+            # Replace (not append) stylesheet so border doesn't accumulate
+            self.api_key_input.setStyleSheet(self._KEY_INPUT_BASE + " border: 1px solid #f87171;")
             return
         self.config.set("groq_api_key", key)
-        self.api_key_input.setStyleSheet(self.api_key_input.styleSheet() + "border: 1px solid #4ade80;")
+        self.api_key_input.setStyleSheet(self._KEY_INPUT_BASE + " border: 1px solid #4ade80;")
+        # Reset to neutral after 2 s
+        QTimer.singleShot(2000, lambda: self.api_key_input.setStyleSheet(self._KEY_INPUT_BASE + " border: 1px solid #2e2b28;"))
 
     def _save_inject_method(self):
         method = "clipboard" if self.inject_combo.currentIndex() == 0 else "type"
@@ -899,8 +962,14 @@ class DashboardWindow(QMainWindow):
         self.status_lbl.setStyleSheet(
             f"color: {color}; font-size: 11px; font-family: 'Segoe UI'; margin-top: 8px;"
         )
-        if reset_ms:
-            QTimer.singleShot(reset_ms, lambda: self._set_status("● Active", "#4ade80", 0))
+        if reset_ms > 0:
+            # Use a direct lambda that sets the label without scheduling another reset
+            QTimer.singleShot(reset_ms, lambda: (
+                self.status_lbl.setText("● Active"),
+                self.status_lbl.setStyleSheet(
+                    "color: #4ade80; font-size: 11px; font-family: 'Segoe UI'; margin-top: 8px;"
+                )
+            ))
 
     def _kill_mic(self):
         """Force-stop mic: sends KILL_MIC signal to main Mike process."""

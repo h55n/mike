@@ -73,9 +73,23 @@ class TextInjector:
             self._type_text(text)
 
     def _type_text(self, text: str):
-        """Type text character by character (slower, more compatible)."""
+        """
+        Type text 'character by character'.
+        pyautogui.write() silently drops non-ASCII chars, so we only use it
+        for pure ASCII short strings; everything else goes via clipboard paste.
+        """
         try:
-            pyautogui.write(text, interval=0.012)
-            logger.debug(f"Typed: {len(text)} chars")
+            if all(ord(c) < 128 for c in text):
+                pyautogui.write(text, interval=0.012)
+                logger.debug(f"Typed (ASCII): {len(text)} chars")
+            else:
+                # Non-ASCII present — fall back to clipboard paste
+                logger.debug(f"Non-ASCII in type-mode text — using clipboard paste")
+                self._clipboard_paste(text)
         except Exception as e:
             logger.error(f"Type failed: {e}")
+            # Last-resort clipboard paste
+            try:
+                self._clipboard_paste(text)
+            except Exception:
+                pass

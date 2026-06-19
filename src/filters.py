@@ -209,11 +209,16 @@ class TextFilter:
         return text.strip()
 
     def _normalize(self, text: str) -> str:
-        """Normalize unicode, fix smart quotes, etc."""
+        """Normalize unicode, fix smart quotes, etc.
+        NOTE: em-dash/en-dash are intentionally PRESERVED here because the
+        PROMPT_TRIGGERS list uses them (e.g. 'prompt\u2014' for 'prompt—').
+        Dash normalization only happens in _fix_spacing, after trigger detection.
+        """
         text = unicodedata.normalize("NFKC", text)
         text = text.replace("\u2018", "'").replace("\u2019", "'")
         text = text.replace("\u201c", '"').replace("\u201d", '"')
-        text = text.replace("\u2013", "-").replace("\u2014", "-")
+        # ← Do NOT normalize em-dash (\u2014) or en-dash (\u2013) here —
+        #   the prompt trigger detection needs them intact.
         return text
 
     def _is_ambient_noise(self, text: str) -> bool:
@@ -283,7 +288,9 @@ class TextFilter:
         return " ".join(result)
 
     def _fix_spacing(self, text: str) -> str:
-        """Collapse multiple spaces, fix punctuation spacing."""
+        """Collapse multiple spaces, fix punctuation spacing, normalize dashes."""
+        # Now safe to normalize dashes (trigger detection is already done)
+        text = text.replace("\u2013", "-").replace("\u2014", "-")
         text = re.sub(r"\s{2,}", " ", text)
         text = re.sub(r"\s([,\.!?;:])", r"\1", text)
         text = re.sub(r"([,\.!?;:])\s*([,\.!?;:])", r"\1\2", text)
