@@ -30,23 +30,23 @@ def show_setup_wizard() -> str:
         dlg.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
         dlg.setStyleSheet("""
             QDialog {
-                background: #121212;
+                background: #000000;
             }
             QLabel {
-                color: #eef2e3;
-                font-family: 'Segoe UI', sans-serif;
+                color: #FFFFFF;
+                font-family: 'Inter Tight', 'Segoe UI', sans-serif;
             }
             QLineEdit {
-                background: #0c0c0c;
-                color: #eef2e3;
+                background: #FFFFFF;
+                color: #FFFFFF;
                 border: 1px solid #374151;
-                border-radius: 4px;
+                border-radius: 0px;
                 padding: 12px 16px;
-                font-family: 'Times New Roman', serif;
+                font-family: 'Inter Tight', 'Segoe UI', sans-serif;
                 font-size: 14px;
             }
             QLineEdit:focus {
-                border: 1px solid #9ca3af;
+                border: 1px solid #000000;
             }
         """)
 
@@ -56,8 +56,8 @@ def show_setup_wizard() -> str:
 
         title = QLabel("Welcome to Mike")
         title.setStyleSheet(
-            "font-size: 28px; font-weight: 400; color: #eef2e3; "
-            "font-family: 'Georgia', 'Times New Roman', serif; letter-spacing: -0.5px;"
+            "font-size: 41px; letter-spacing: -1.134px; font-weight: 400; color: #FFFFFF; "
+            "font-family: 'PT Serif', serif; letter-spacing: -0.5px;"
         )
         layout.addWidget(title)
 
@@ -66,8 +66,8 @@ def show_setup_wizard() -> str:
             "Get a free key at console.groq.com — no credit card needed."
         )
         sub.setStyleSheet(
-            "color: #9ca3af; font-size: 13px; "
-            "font-family: 'Segoe UI', sans-serif; line-height: 1.5;"
+            "color: #E5E7EB; font-size: 13px; "
+            "font-family: 'Inter Tight', 'Segoe UI', sans-serif; line-height: 1.5;"
         )
         sub.setWordWrap(True)
         layout.addWidget(sub)
@@ -79,7 +79,7 @@ def show_setup_wizard() -> str:
         layout.addWidget(key_input)
 
         err_lbl = QLabel("")
-        err_lbl.setStyleSheet("color: #d96b6b; font-size: 12px; font-family: 'Segoe UI', sans-serif;")
+        err_lbl.setStyleSheet("color: #d96b6b; font-size: 12px; font-family: 'Inter Tight', 'Segoe UI', sans-serif;")
         layout.addWidget(err_lbl)
 
         btn_row = QHBoxLayout()
@@ -90,17 +90,17 @@ def show_setup_wizard() -> str:
         skip_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
-                color: #9ca3af;
+                color: #E5E7EB;
                 border: 1px solid #374151;
-                border-radius: 4px;
+                border-radius: 0px;
                 padding: 10px 24px;
-                font-family: 'Segoe UI', sans-serif;
+                font-family: 'Inter Tight', 'Segoe UI', sans-serif;
                 font-size: 13px;
                 font-weight: 500;
             }
             QPushButton:hover {
-                color: #eef2e3;
-                border-color: #9ca3af;
+                color: #FFFFFF;
+                border-color: #E5E7EB;
             }
         """)
 
@@ -108,20 +108,22 @@ def show_setup_wizard() -> str:
         save_btn.setFixedHeight(46)
         save_btn.setStyleSheet("""
             QPushButton {
-                background: #eef2e3;
-                color: #043f2e;
+                background: #C5FF4A;
+                color: #000000;
                 border: none;
-                border-radius: 4px;
+                border-radius: 0px;
                 padding: 10px 24px;
-                font-family: 'Segoe UI', sans-serif;
-                font-size: 13px;
-                font-weight: 500;
+                font-family: 'Inter Tight', 'Segoe UI', sans-serif;
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
             }
             QPushButton:hover {
-                background: #f5f4ef;
+                background: #B0E645;
             }
             QPushButton:pressed {
-                background: #d8dcc8;
+                background: #96C93C;
             }
         """)
 
@@ -132,9 +134,9 @@ def show_setup_wizard() -> str:
 
         # Fixed neutral style (no accumulation)
         _neutral_style = (
-            "background: #0c0c0c; color: #eef2e3; "
-            "border: 1px solid #374151; border-radius: 4px; "
-            "padding: 12px 16px; font-family: 'Times New Roman', serif; font-size: 14px;"
+            "background: #FFFFFF; color: #FFFFFF; "
+            "border: 1px solid #374151; border-radius: 0px; "
+            "padding: 12px 16px; font-family: 'Inter Tight', 'Segoe UI', sans-serif; font-size: 14px;"
         )
 
         result = {"key": ""}
@@ -143,7 +145,7 @@ def show_setup_wizard() -> str:
             k = key_input.text().strip()
             if not k.startswith("gsk_") or len(k) < 20:
                 err_lbl.setText("Key must start with 'gsk_' and be at least 20 characters.")
-                key_input.setStyleSheet(_neutral_style + " border: 1px solid #d96b6b;")
+                key_input.setStyleSheet(_neutral_style + " border: 1px solid #FF4D4F;")
                 return
             result["key"] = k
             dlg.accept()

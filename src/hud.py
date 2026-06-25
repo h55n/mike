@@ -26,20 +26,20 @@ import time
 
 
 # ─── Design Tokens ───────────────────────────────────────────────────────────
-BG_PILL        = "#1a1714"      # Near-black warm surface
-BG_HOVER       = "#242019"      # Slightly lighter on hover
-BORDER_IDLE    = "#3a3530"      # Subtle border in silent mode
-BORDER_ACTIVE  = "#4d4842"      # Brighter border on hover/recording
-TEXT_PRIMARY   = "#f5f4f2"      # Off-white body text
-TEXT_MUTED     = "#8a827c"      # Muted label color
-ACCENT_PINK    = "#f472b6"      # Pink hotkey accent
-ACCENT_GREEN   = "#4ade80"      # Accept/confirm green
-ACCENT_RED     = "#f87171"      # Cancel/X red
-ACCENT_AMBER   = "#fbbf24"      # Warm recording accent
+BG_PILL        = "#000000"      # Deep black
+BG_HOVER       = "#000000"      # Deep black hover
+BORDER_IDLE    = "#333333"      # Subtle border
+BORDER_ACTIVE  = "#E5E7EB"      # Neutral light border
+TEXT_PRIMARY   = "#FFFFFF"      # White body text
+TEXT_MUTED     = "#9CA3AF"      # Muted gray
+ACCENT_PINK    = "#C5FF4A"      # Lime accent
+ACCENT_GREEN   = "#C5FF4A"      # Lime confirm
+ACCENT_RED     = "#FF4D4F"      # Error red
+ACCENT_AMBER   = "#C5FF4A"      # Lime recording
 
-FONT_BODY   = ("Segoe UI", 7, "normal")
-FONT_SMALL  = ("Segoe UI", 7, "normal")
-FONT_BADGE  = ("Segoe UI", 6, "bold")
+FONT_BODY   = ("Inter Tight", 8, "normal")
+FONT_SMALL  = ("Inter Tight", 8, "normal")
+FONT_BADGE  = ("Inter Tight", 6, "bold")
 
 # Window geometry
 PILL_W, PILL_H         = 68, 16       # Silent collapsed pill
@@ -212,24 +212,9 @@ class MikeHUD:
 
     def _draw_pill(self, c, w, h, r, fill, outline):
         """
-        Draw a silky-smooth pill shape.
-        Steps=32 + smooth=True gives perfect anti-aliased capsule curves.
-        Canvas bg is the chromakey so corners are transparent to the desktop.
+        Draw a sharp rectangle (zkPass Neon Serif).
         """
-        x0, y0, x1, y1 = 1, 1, w - 1, h - 1
-        points = []
-        steps = 32
-        # Left semicircle
-        cx, cy = x0 + r, y0 + r
-        for i in range(steps + 1):
-            angle = math.pi / 2 + math.pi * i / steps
-            points.extend([cx + r * math.cos(angle), cy + r * math.sin(angle)])
-        # Right semicircle
-        cx, cy = x1 - r, y0 + r
-        for i in range(steps + 1):
-            angle = -math.pi / 2 + math.pi * i / steps
-            points.extend([cx + r * math.cos(angle), cy + r * math.sin(angle)])
-        c.create_polygon(points, fill=fill, outline=outline, width=1, smooth=True)
+        c.create_rectangle(1, 1, w - 1, h - 1, fill=fill, outline=outline, width=1)
 
     def _draw_continuous_content(self, c, w, h):
         """Continuous mode: pulsing green dot + LIVE label + red X stop button."""
@@ -257,16 +242,16 @@ class MikeHUD:
         glow_r = dot_r + 2
         c.create_oval(dot_x - glow_r, mid_y - glow_r,
                       dot_x + glow_r, mid_y + glow_r,
-                      fill="", outline="#22c55e44" if self._cont_pulse > 0.6 else "#22c55e22",
+                      fill="", outline="#C5FF4A44" if self._cont_pulse > 0.6 else "#C5FF4A22",
                       width=1)
         c.create_oval(dot_x - dot_r, mid_y - dot_r,
                       dot_x + dot_r, mid_y + dot_r,
-                      fill=dot_col, outline="#22c55e", width=1)
+                      fill=dot_col, outline="#C5FF4A", width=1)
 
         # LIVE label (centre-left)
         c.create_text(dot_x + 14, mid_y, text="LIVE",
                       font=("Segoe UI", 7, "bold"),
-                      fill="#4ade80", anchor="w")
+                      fill="#C5FF4A", anchor="w")
 
     def _draw_hover_content(self, c, w, h):
         """Hover: Dictate label + hotkey + mode/settings/dashboard buttons."""
@@ -332,10 +317,10 @@ class MikeHUD:
                 dy_s = mid_y + 6 * math.sin(angle)
                 idx = (i + int(self._wave_phase * 4 / math.pi)) % 8
                 alpha = 0.15 + 0.85 * (idx / 8)
-                # Pink gradient: brightest dot is pink, others fade to grey
-                r_val = int(alpha * 244)
-                g_val = int(alpha * 114 * 0.5)
-                b_val = int(alpha * 182 * 0.5)
+                # Lime gradient
+                r_val = int(alpha * 197)
+                g_val = int(alpha * 255)
+                b_val = int(alpha * 74)
                 r_val = max(0, min(255, r_val))
                 g_val = max(0, min(255, g_val))
                 b_val = max(0, min(255, b_val))
@@ -355,14 +340,12 @@ class MikeHUD:
                 by = mid_y - bar_h // 2
                 # Color: center bars pink/amber, outer bars muted
                 center_dist = abs(i - center_i) / max(center_i, 1)
-                # Lerp between ACCENT_PINK (#f472b6) and muted grey (#555555)
-                r_c = int(244 - center_dist * (244 - 85))
-                g_c = int(114 - center_dist * (114 - 85))
-                b_c = int(182 - center_dist * (182 - 85))
-                # Modulate by amplitude
-                r_c = max(0, min(255, int(r_c * (0.5 + 0.5 * amp))))
-                g_c = max(0, min(255, int(g_c * (0.5 + 0.5 * amp))))
-                b_c = max(0, min(255, int(b_c * (0.5 + 0.5 * amp))))
+                r_c = 197 # C5
+                g_c = 255 # FF
+                b_c = 74  # 4A
+                r_c = max(0, min(255, int(r_c * (0.3 + 0.7 * amp))))
+                g_c = max(0, min(255, int(g_c * (0.3 + 0.7 * amp))))
+                b_c = max(0, min(255, int(b_c * (0.3 + 0.7 * amp))))
                 col = f"#{r_c:02x}{g_c:02x}{b_c:02x}"
                 # Rounded rectangle via two rects + oval top/bottom
                 c.create_rectangle(bx, by, bx + bar_w, by + bar_h,
