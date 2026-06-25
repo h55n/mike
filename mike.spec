@@ -38,6 +38,7 @@ a = Analysis(
         'setup_wizard',
         'sounds',
         'winsound',
+        'pygame',
     ],
     hookspath=[],
     runtime_hooks=[],

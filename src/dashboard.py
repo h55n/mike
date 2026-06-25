@@ -824,6 +824,33 @@ class DashboardWindow(QMainWindow):
         self.date_to.setStyleSheet(_date_style)
         self.date_to.dateChanged.connect(self._apply_filters)
 
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText("Search sessions…")
+        self.search_box.setFixedWidth(200)
+        self.search_box.setFixedHeight(36)
+        self.search_box.setStyleSheet(f"""
+            QLineEdit {{
+                background: {_INPUT_BG};
+                color: {_SECONDARY};
+                border: 1px solid {_BORDER};
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 13px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {_MUTED};
+            }}
+        """)
+        self.search_box.textChanged.connect(self._on_search)
+
+        export_btn = QPushButton("Export")
+        export_btn.setObjectName("ghost_btn")
+        export_btn.setFixedHeight(36)
+        export_btn.clicked.connect(self._export_sessions)
+
+        filter_bar.addWidget(self.search_box)
+        filter_bar.addSpacing(16)
         filter_bar.addWidget(_lbl("Mode:"))
         filter_bar.addWidget(self.mode_filter)
         filter_bar.addSpacing(8)
