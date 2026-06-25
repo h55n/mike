@@ -210,9 +210,42 @@ class MikeHUD:
 
     def _draw_pill(self, c, w, h, r, fill, outline):
         """
-        Draw a sharp rectangle (zkPass Neon Serif).
+        Draw a beautifully curved pill shape using a precision polygon.
         """
-        c.create_rectangle(1, 1, w - 1, h - 1, fill=fill, outline=outline, width=1)
+        steps = 16
+        points = []
+        radius = (h - 2) / 2.0
+
+        cx_left = 1 + radius
+        cx_right = w - 1 - radius
+        cy = 1 + radius
+
+        # Top-left arc
+        for i in range(steps + 1):
+            angle = math.pi + (math.pi / 2) * (i / steps)
+            points.extend(
+                [cx_left + radius * math.cos(angle), cy + radius * math.sin(angle)]
+            )
+        # Top-right arc
+        for i in range(steps + 1):
+            angle = 1.5 * math.pi + (math.pi / 2) * (i / steps)
+            points.extend(
+                [cx_right + radius * math.cos(angle), cy + radius * math.sin(angle)]
+            )
+        # Bottom-right arc
+        for i in range(steps + 1):
+            angle = 0 + (math.pi / 2) * (i / steps)
+            points.extend(
+                [cx_right + radius * math.cos(angle), cy + radius * math.sin(angle)]
+            )
+        # Bottom-left arc
+        for i in range(steps + 1):
+            angle = 0.5 * math.pi + (math.pi / 2) * (i / steps)
+            points.extend(
+                [cx_left + radius * math.cos(angle), cy + radius * math.sin(angle)]
+            )
+
+        c.create_polygon(points, fill=fill, outline=outline, width=1, smooth=False)
 
     def _draw_continuous_content(self, c, w, h):
         """Continuous mode: pulsing green dot + LIVE label + red X stop button."""
