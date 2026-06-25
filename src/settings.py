@@ -1,8 +1,11 @@
 """
 settings.py — Settings wrapper over SQLite
 """
+
 import logging
+
 logger = logging.getLogger("mike.settings")
+
 
 class Settings:
     def __init__(self, db):

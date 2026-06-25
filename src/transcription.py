@@ -7,8 +7,9 @@ Fixes:
   - Language forced to English
 """
 
-import time
 import logging
+import time
+
 from groq import Groq
 
 logger = logging.getLogger("mike.transcription")
@@ -32,13 +33,13 @@ WHISPER_HALLUCINATIONS = {
     "",
 }
 
-MAX_RETRIES   = 3
-RETRY_DELAYS  = [1.0, 2.0, 4.0]
+MAX_RETRIES = 3
+RETRY_DELAYS = [1.0, 2.0, 4.0]
 
 
 class TranscriptionService:
     def __init__(self, config):
-        self.config  = config
+        self.config = config
         self._client = None
         self._client_api_key = None
 
@@ -69,7 +70,7 @@ class TranscriptionService:
 
                 response = client.audio.transcriptions.create(
                     file=("audio.wav", audio_buffer.read()),
-                    model="whisper-large-v3-turbo",   # Fast + accurate
+                    model="whisper-large-v3-turbo",  # Fast + accurate
                     language=self.config.get("transcription_language", "en"),
                     response_format="text",
                     # NO prompt= parameter — it was leaking into transcripts
@@ -82,7 +83,9 @@ class TranscriptionService:
                     logger.info(f"Hallucination detected: '{text[:60]}' — discarding")
                     return ""
 
-                logger.info(f"Transcript ({len(text.split())} words): {text[:100]}{'…' if len(text) > 100 else ''}")
+                logger.info(
+                    f"Transcript ({len(text.split())} words): {text[:100]}{'…' if len(text) > 100 else ''}"
+                )
                 return text
 
             except ValueError as e:
@@ -92,11 +95,15 @@ class TranscriptionService:
             except Exception as e:
                 if attempt < MAX_RETRIES - 1:
                     delay = RETRY_DELAYS[attempt]
-                    logger.warning(f"Transcription attempt {attempt+1} failed: {e} — retrying in {delay}s")
+                    logger.warning(
+                        f"Transcription attempt {attempt+1} failed: {e} — retrying in {delay}s"
+                    )
                     time.sleep(delay)
                     self._client = None
                 else:
-                    logger.error(f"Transcription failed after {MAX_RETRIES} attempts: {e}")
+                    logger.error(
+                        f"Transcription failed after {MAX_RETRIES} attempts: {e}"
+                    )
                     return ""
 
         return ""

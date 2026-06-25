@@ -4,56 +4,63 @@ Fixes: double-posting lock, reliable hotkey state, processing guard,
        audio level feeding to HUD, proper cleanup on cancel.
 """
 
+import logging
+import queue
 import threading
 import time
-import queue
-import logging
 
 try:
     from sounds import play_start, play_stop
 except Exception:
-    def play_start(): pass
-    def play_stop():  pass
+
+    def play_start():
+        pass
+
+    def play_stop():
+        pass
+
 
 logger = logging.getLogger("mike.engine")
 
 
 class EngineState:
-    IDLE              = "idle"
-    RECORDING_PTT     = "recording_ptt"
-    RECORDING_CONT    = "recording_cont"
-    PAUSED_CONT       = "paused_cont"
-    PROCESSING        = "processing"
+    IDLE = "idle"
+    RECORDING_PTT = "recording_ptt"
+    RECORDING_CONT = "recording_cont"
+    PAUSED_CONT = "paused_cont"
+    PROCESSING = "processing"
 
 
 class MikeEngine:
-    def __init__(self, config, audio, transcription, ai, filters, injection, db, settings):
-        self.config      = config
-        self.audio       = audio
-        self.transcribe  = transcription
-        self.ai          = ai
-        self.filters     = filters
-        self.inject      = injection
-        self.db          = db
-        self.settings    = settings
+    def __init__(
+        self, config, audio, transcription, ai, filters, injection, db, settings
+    ):
+        self.config = config
+        self.audio = audio
+        self.transcribe = transcription
+        self.ai = ai
+        self.filters = filters
+        self.inject = injection
+        self.db = db
+        self.settings = settings
 
-        self.state       = EngineState.IDLE
-        self.mode        = settings.get("active_mode", "raw")
-        self.hud         = None          # set after HUD is created
-        self.dashboard   = None          # set when dashboard is opened
+        self.state = EngineState.IDLE
+        self.mode = settings.get("active_mode", "raw")
+        self.hud = None  # set after HUD is created
+        self.dashboard = None  # set when dashboard is opened
 
-        self._state_lock    = threading.Lock()
-        self._process_lock  = threading.Lock()   # ← key fix: prevents double-post
-        self._ptt_active    = False
+        self._state_lock = threading.Lock()
+        self._process_lock = threading.Lock()  # ← key fix: prevents double-post
+        self._ptt_active = False
         self._session_start = None
-        self._task_queue    = queue.Queue()
+        self._task_queue = queue.Queue()
 
         # Continuous mode
-        self._cont_thread   = None
-        self._cont_stop     = threading.Event()
-        self._cont_pause    = threading.Event()
-        self._toggle_seq    = 0          # increments on every toggle call
-        self._last_toggle_t = 0.0        # time of last successful toggle (seconds)
+        self._cont_thread = None
+        self._cont_stop = threading.Event()
+        self._cont_pause = threading.Event()
+        self._toggle_seq = 0  # increments on every toggle call
+        self._last_toggle_t = 0.0  # time of last successful toggle (seconds)
 
         # Worker thread for transcription/LLM (non-blocking)
         self._worker_thread = threading.Thread(target=self._worker_loop, daemon=True)
@@ -68,11 +75,11 @@ class MikeEngine:
             logger.debug(f"State: {old} → {new_state}")
         if self.hud:
             hud_state_map = {
-                EngineState.IDLE:           "silent",
-                EngineState.RECORDING_PTT:  "recording",
+                EngineState.IDLE: "silent",
+                EngineState.RECORDING_PTT: "recording",
                 EngineState.RECORDING_CONT: "continuous",
-                EngineState.PAUSED_CONT:    "continuous",   # keep LIVE shown when paused
-                EngineState.PROCESSING:     "processing",
+                EngineState.PAUSED_CONT: "continuous",  # keep LIVE shown when paused
+                EngineState.PROCESSING: "processing",
             }
             self.hud.set_state(hud_state_map.get(new_state, "silent"))
 
@@ -105,7 +112,10 @@ class MikeEngine:
             if self.state == EngineState.IDLE:
                 self._ptt_active = False
                 return
-            if self.state not in (EngineState.RECORDING_PTT, EngineState.RECORDING_CONT):
+            if self.state not in (
+                EngineState.RECORDING_PTT,
+                EngineState.RECORDING_CONT,
+            ):
                 self._ptt_active = False
                 return
             if not self._ptt_active and self.state == EngineState.RECORDING_PTT:
@@ -116,7 +126,7 @@ class MikeEngine:
         logger.info("PTT stop → queuing transcription")
         play_stop()
         audio_buf = self.audio.stop_capture()
-        duration  = time.time() - (self._session_start or time.time())
+        duration = time.time() - (self._session_start or time.time())
 
         if audio_buf is None or duration < 0.3:
             # Too short — ignore (avoids phantom transcriptions from noise)
@@ -139,6 +149,7 @@ class MikeEngine:
     def toggle_continuous(self):
         """Toggle continuous mode. Double-fire protected via sequence counter."""
         import time as _time
+
         now = _time.monotonic()
 
         with self._state_lock:
@@ -161,9 +172,7 @@ class MikeEngine:
         self._cont_stop.clear()
         self._cont_pause.clear()
         self._set_state(EngineState.RECORDING_CONT)
-        self._cont_thread = threading.Thread(
-            target=self._continuous_loop, daemon=True
-        )
+        self._cont_thread = threading.Thread(target=self._continuous_loop, daemon=True)
         self._cont_thread.start()
 
     def _stop_continuous(self):
@@ -210,7 +219,7 @@ class MikeEngine:
             except queue.Empty:
                 continue
 
-            if task is None:   # Shutdown signal
+            if task is None:  # Shutdown signal
                 break
 
             if task[0] == "transcribe":
@@ -240,7 +249,9 @@ class MikeEngine:
 
             # 3. Detect special triggers
             is_prompt, prompt_content = self.filters.detect_prompt_mode(cleaned)
-            is_pointwise, pointwise_content = self.filters.detect_pointwise_mode(cleaned)
+            is_pointwise, pointwise_content = self.filters.detect_pointwise_mode(
+                cleaned
+            )
 
             # 4. Route to AI or direct
             if is_prompt:
@@ -293,7 +304,11 @@ class MikeEngine:
             # Restore correct state after processing
             if self.state == EngineState.PROCESSING:
                 # If continuous loop is still running, go back to RECORDING_CONT
-                if not self._cont_stop.is_set() and self._cont_thread and self._cont_thread.is_alive():
+                if (
+                    not self._cont_stop.is_set()
+                    and self._cont_thread
+                    and self._cont_thread.is_alive()
+                ):
                     self._set_state(EngineState.RECORDING_CONT)
                 else:
                     self._set_state(EngineState.IDLE)
@@ -321,18 +336,22 @@ class MikeEngine:
         - Frozen (exe): spawn same Mike.exe --dashboard (no external Python needed)
         - Dev (script): spawn pythonw main.py --dashboard (no console)
         """
+        import os
+        import pathlib
         import subprocess
         import sys
-        import pathlib
-        import os
 
-        NO_WINDOW = 0x08000000   # CREATE_NO_WINDOW
-        DETACHED  = 0x00000008   # DETACHED_PROCESS
+        NO_WINDOW = 0x08000000  # CREATE_NO_WINDOW
+        DETACHED = 0x00000008  # DETACHED_PROCESS
 
         try:
             env = os.environ.copy()
             for k in list(env.keys()):
-                if k.startswith("_PYI") or k.startswith("_MEI") or k in ("TCL_LIBRARY", "TK_LIBRARY"):
+                if (
+                    k.startswith("_PYI")
+                    or k.startswith("_MEI")
+                    or k in ("TCL_LIBRARY", "TK_LIBRARY")
+                ):
                     env.pop(k, None)
 
             if getattr(sys, "frozen", False):
@@ -391,11 +410,12 @@ class MikeEngine:
         # Replace stop/pause events with fresh ones so continuous mode
         # can be started again cleanly after a force_stop.
         import time as _t
-        _t.sleep(0.15)   # brief window for continuous thread to notice and exit
-        self._cont_stop  = threading.Event()
+
+        _t.sleep(0.15)  # brief window for continuous thread to notice and exit
+        self._cont_stop = threading.Event()
         self._cont_pause = threading.Event()
         self._ptt_active = False
-        self._last_toggle_t = 0.0   # reset debounce so toggles work immediately
+        self._last_toggle_t = 0.0  # reset debounce so toggles work immediately
         logger.info("Mike wake complete — ready")
         if self.hud:
             self.hud.show_notification("✓ Mike ready", 1500)

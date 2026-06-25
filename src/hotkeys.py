@@ -33,10 +33,10 @@ DESIGN DECISIONS & BUG FIXES:
    Gives slower typists more time to add Space for continuous toggle.
 """
 
+import ctypes
+import logging
 import threading
 import time
-import logging
-import ctypes
 
 from pynput import keyboard
 
@@ -47,9 +47,9 @@ logger = logging.getLogger("mike.hotkeys")
 
 VK_LCONTROL = 0xA2
 VK_RCONTROL = 0xA3
-VK_LSHIFT   = 0xA0
-VK_RSHIFT   = 0xA1
-VK_SPACE    = 0x20
+VK_LSHIFT = 0xA0
+VK_RSHIFT = 0xA1
+VK_SPACE = 0x20
 
 
 def _key_down(vk_code: int) -> bool:
@@ -60,48 +60,61 @@ def _key_down(vk_code: int) -> bool:
         return False
 
 
-def _ctrl_held()  -> bool: return _key_down(VK_LCONTROL) or _key_down(VK_RCONTROL)
-def _shift_held() -> bool: return _key_down(VK_LSHIFT)   or _key_down(VK_RSHIFT)
-def _space_held() -> bool: return _key_down(VK_SPACE)
+def _ctrl_held() -> bool:
+    return _key_down(VK_LCONTROL) or _key_down(VK_RCONTROL)
+
+
+def _shift_held() -> bool:
+    return _key_down(VK_LSHIFT) or _key_down(VK_RSHIFT)
+
+
+def _space_held() -> bool:
+    return _key_down(VK_SPACE)
 
 
 # ─── HotkeyListener ──────────────────────────────────────────────────────────
 
+
 class HotkeyListener:
     def __init__(self, engine):
-        self.engine       = engine
-        self._pressed     = set()
-        self._ptt_active  = False
-        self._listener    = None
-        self._lock        = threading.Lock()
-        self._ptt_timer   = None       # deferred PTT start timer
-        self._watchdog    = None       # auto-release watchdog
+        self.engine = engine
+        self._pressed = set()
+        self._ptt_active = False
+        self._listener = None
+        self._lock = threading.Lock()
+        self._ptt_timer = None  # deferred PTT start timer
+        self._watchdog = None  # auto-release watchdog
 
         # Debounce timings (ms)
-        self._last_ptt_start   = 0.0
-        self._last_toggle      = 0.0
-        self._ptt_debounce_ms  = 400   # raised from 200 → prevents rapid re-fires
+        self._last_ptt_start = 0.0
+        self._last_toggle = 0.0
+        self._ptt_debounce_ms = 400  # raised from 200 → prevents rapid re-fires
         self._cont_debounce_ms = 1000  # 1 s — prevents key-repeat spam on Space
 
         # Window to wait for Space before committing PTT
-        self._ptt_delay_s = 0.20       # 200 ms (was 120 ms)
+        self._ptt_delay_s = 0.20  # 200 ms (was 120 ms)
 
         # PTT safety: if held >30 s with no key-up, auto-release
         self._PTT_MAX_S = 30.0
 
         # Ghost-key cleanup thread
         self._cleanup_running = False
-        self._cleanup_thread  = None
+        self._cleanup_thread = None
 
     # ── Key sets ──────────────────────────────────────────────────────────────
 
-    CTRL_KEYS  = {keyboard.Key.ctrl_l, keyboard.Key.ctrl_r, keyboard.Key.ctrl}
-    SHIFT_KEYS = {keyboard.Key.shift,  keyboard.Key.shift_r, keyboard.Key.shift_l}
+    CTRL_KEYS = {keyboard.Key.ctrl_l, keyboard.Key.ctrl_r, keyboard.Key.ctrl}
+    SHIFT_KEYS = {keyboard.Key.shift, keyboard.Key.shift_r, keyboard.Key.shift_l}
     SPACE_KEYS = {keyboard.Key.space}
 
-    def _has_ctrl(self):  return bool(self._pressed & self.CTRL_KEYS)
-    def _has_shift(self): return bool(self._pressed & self.SHIFT_KEYS)
-    def _has_space(self): return bool(self._pressed & self.SPACE_KEYS)
+    def _has_ctrl(self):
+        return bool(self._pressed & self.CTRL_KEYS)
+
+    def _has_shift(self):
+        return bool(self._pressed & self.SHIFT_KEYS)
+
+    def _has_space(self):
+        return bool(self._pressed & self.SPACE_KEYS)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -116,7 +129,7 @@ class HotkeyListener:
 
         # Ghost-key cleanup loop
         self._cleanup_running = True
-        self._cleanup_thread  = threading.Thread(
+        self._cleanup_thread = threading.Thread(
             target=self._ghost_key_loop, daemon=True, name="mike-hotkey-cleanup"
         )
         self._cleanup_thread.start()
@@ -189,9 +202,7 @@ class HotkeyListener:
         self._ptt_active = False
         self._cancel_watchdog()
         logger.debug("PTT released → stop_and_transcribe")
-        threading.Thread(
-            target=self.engine.stop_and_transcribe, daemon=True
-        ).start()
+        threading.Thread(target=self.engine.stop_and_transcribe, daemon=True).start()
 
     def _sync_pressed(self):
         """Remove ghost modifier keys whose Win32 state says they are up."""
@@ -214,14 +225,16 @@ class HotkeyListener:
                 self._sync_pressed()
                 # Also auto-release a stuck PTT if keys are physically up
                 if self._ptt_active and not _ctrl_held() and not _shift_held():
-                    logger.warning("Ghost-key cleanup: PTT active but keys physically up — auto-releasing")
+                    logger.warning(
+                        "Ghost-key cleanup: PTT active but keys physically up — auto-releasing"
+                    )
                     self._do_ptt_stop()
 
     def _handle_press(self):
         """Called inside lock on every key press."""
-        now = time.time() * 1000   # ms
+        now = time.time() * 1000  # ms
 
-        ctrl  = self._has_ctrl()
+        ctrl = self._has_ctrl()
         shift = self._has_shift()
         space = self._has_space()
 
@@ -237,15 +250,16 @@ class HotkeyListener:
             return
 
         # ── Ctrl + Shift (no Space) → schedule PTT after 200 ms window ─────────
-        if (ctrl and shift
-                and not space
-                and not self._ptt_active
-                and not self._ptt_timer):
+        if (
+            ctrl
+            and shift
+            and not space
+            and not self._ptt_active
+            and not self._ptt_timer
+        ):
             if now - self._last_ptt_start > self._ptt_debounce_ms:
                 self._last_ptt_start = now
-                self._ptt_timer = threading.Timer(
-                    self._ptt_delay_s, self._fire_ptt
-                )
+                self._ptt_timer = threading.Timer(self._ptt_delay_s, self._fire_ptt)
                 self._ptt_timer.daemon = True
                 self._ptt_timer.start()
 
@@ -259,7 +273,7 @@ class HotkeyListener:
             self._ptt_timer = None
 
             # Physical verification — the most important guard
-            ctrl_ok  = _ctrl_held()
+            ctrl_ok = _ctrl_held()
             shift_ok = _shift_held()
             space_ok = _space_held()
 
@@ -279,6 +293,4 @@ class HotkeyListener:
             self._ptt_active = True
             self._start_watchdog()
             logger.info("PTT start (Ctrl+Shift)")
-            threading.Thread(
-                target=self.engine.start_recording, daemon=True
-            ).start()
+            threading.Thread(target=self.engine.start_recording, daemon=True).start()

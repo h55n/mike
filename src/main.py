@@ -12,14 +12,15 @@ Startup order:
   9. HUD (main thread — tkinter requires main thread)
 """
 
-import sys
-import os
-import io
-import threading
-import logging
-import pathlib
 import ctypes
+import io
+import logging
+import os
+import pathlib
 import socket
+import sys
+import threading
+
 from paths import app_root, src_root
 
 # ─── Force CWD to script dir (fixes relative imports on registry/startup launch)
@@ -32,7 +33,7 @@ for _path in (str(_SRC_DIR), str(_APP_ROOT)):
 
 # ─── DPI awareness (must be before any window creation) ───────────────────────
 try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2)   # Per-monitor v2
+    ctypes.windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor v2
 except Exception:
     try:
         ctypes.windll.user32.SetProcessDPIAware()
@@ -42,7 +43,9 @@ except Exception:
 # ─── Fix stdout encoding for Windows console ──────────────────────────────────
 if sys.stdout and hasattr(sys.stdout, "buffer"):
     try:
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
+        sys.stdout = io.TextIOWrapper(
+            sys.stdout.buffer, encoding="utf-8", errors="replace"
+        )
     except Exception:
         pass
 
@@ -52,7 +55,9 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 _handlers = []
 try:
-    _handlers.append(logging.FileHandler(LOG_DIR / "mike.log", encoding="utf-8", mode="a"))
+    _handlers.append(
+        logging.FileHandler(LOG_DIR / "mike.log", encoding="utf-8", mode="a")
+    )
 except OSError:
     pass
 if sys.stdout is not None:
@@ -71,6 +76,7 @@ def _show_error(title: str, msg: str):
     try:
         import tkinter as tk
         from tkinter import messagebox
+
         root = tk.Tk()
         root.withdraw()
         messagebox.showerror(title, msg)
@@ -79,28 +85,32 @@ def _show_error(title: str, msg: str):
         logger.error(f"[{title}] {msg}")
 
 
-
 def _launch_dashboard_standalone():
     """Show dashboard as standalone window (no engine). For --dashboard flag."""
     logger.info("Dashboard standalone mode")
     try:
-        from PyQt6.QtWidgets import QApplication
-        import sys
         import pathlib
         import sqlite3
+        import sys
+
+        from PyQt6.QtWidgets import QApplication
 
         # Locate DB
         db_path_str = ""
         if len(sys.argv) > 2:
             db_path_str = sys.argv[2]
         if not db_path_str:
-            db_path_str = str(pathlib.Path.home() / "AppData" / "Local" / "Mike" / "mike.db")
+            db_path_str = str(
+                pathlib.Path.home() / "AppData" / "Local" / "Mike" / "mike.db"
+            )
 
         # Import db module for dashboard
         from db import Database
+
         db = Database()
 
         from dashboard import DashboardWindow
+
         app = QApplication.instance() or QApplication(sys.argv)
         win = DashboardWindow(db_ref=db)
         win.show()
@@ -132,12 +142,12 @@ def main():
 
     # ── 1. Config + DB ─────────────────────────────────────────────────────
     try:
-        from config   import Config
-        from db       import Database
+        from config import Config
+        from db import Database
         from settings import Settings
 
-        config   = Config()
-        db       = Database()
+        config = Config()
+        db = Database()
         settings = Settings(db)
     except Exception as e:
         _show_error("Mike — Startup Error", f"Failed to load config/database:\n\n{e}")
@@ -147,6 +157,7 @@ def main():
     # Run early so registry is always current even if later steps crash.
     try:
         from startup import add_to_startup
+
         add_to_startup()
         logger.info("Startup registry refreshed (early)")
     except Exception as e:
@@ -157,6 +168,7 @@ def main():
         logger.info("No API key — showing setup wizard")
         try:
             from setup_wizard import show_setup_wizard
+
             key = show_setup_wizard()
             if key:
                 config.set("groq_api_key", key)
@@ -168,18 +180,18 @@ def main():
 
     # ── 3. Build engine modules ────────────────────────────────────────────
     try:
-        from audio        import AudioCapture
+        from ai import AIProcessor
+        from audio import AudioCapture
+        from engine import MikeEngine
+        from filters import TextFilter
+        from injection import TextInjector
         from transcription import TranscriptionService
-        from filters      import TextFilter
-        from ai           import AIProcessor
-        from injection    import TextInjector
-        from engine       import MikeEngine
 
-        audio         = AudioCapture(config)
-        text_filter   = TextFilter()
+        audio = AudioCapture(config)
+        text_filter = TextFilter()
         transcription = TranscriptionService(config)
-        ai            = AIProcessor(config, filters=text_filter)
-        injector      = TextInjector(config)
+        ai = AIProcessor(config, filters=text_filter)
+        injector = TextInjector(config)
 
         engine = MikeEngine(
             config=config,
@@ -207,6 +219,7 @@ def main():
                     logger.info("Received KILL_MIC signal — killing app")
                     engine.shutdown()
                     import os
+
                     os._exit(0)
                 elif data == b"WAKE_MIC":
                     logger.info("Received WAKE_MIC signal — waking engine")
@@ -228,9 +241,12 @@ def main():
     # ── 4. Hotkey listener ─────────────────────────────────────────────────
     try:
         from hotkeys import HotkeyListener
+
         hotkeys = HotkeyListener(engine)
         hotkeys.start()
-        logger.info("Hotkeys: Ctrl+Shift (PTT hold) | Ctrl+Shift+Space (Continuous toggle)")
+        logger.info(
+            "Hotkeys: Ctrl+Shift (PTT hold) | Ctrl+Shift+Space (Continuous toggle)"
+        )
     except Exception as e:
         logger.error(f"Hotkey listener failed: {e} — app will still work via tray")
         hotkeys = None
@@ -238,6 +254,7 @@ def main():
     # ── 5. System tray ────────────────────────────────────────────────────
     try:
         from tray import TrayIcon
+
         tray = TrayIcon(engine)
         tray_thread = threading.Thread(target=tray.start, daemon=True)
         tray_thread.start()
@@ -249,6 +266,7 @@ def main():
     # Already ran early above; this second call ensures any late path changes land.
     try:
         from startup import add_to_startup
+
         add_to_startup()
     except Exception:
         pass
@@ -256,6 +274,7 @@ def main():
     # ── 7. HUD (must be on main thread) ───────────────────────────────────
     try:
         from hud import MikeHUD
+
         hud = MikeHUD(engine_ref=engine)
         engine.hud = hud
         hud.set_mode(saved_mode)

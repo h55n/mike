@@ -13,14 +13,22 @@ Fixes:
 import re
 import unicodedata
 
-
 # ─── Filler patterns ─────────────────────────────────────────────────────────
 
 FILLER_WORDS = [
-    r"\bum+\b", r"\buh+\b", r"\bah+\b", r"\beh+\b",
-    r"\ber+\b", r"\bhmm+\b", r"\bhm+\b", r"\bmm+\b",
-    r"\byou know\b", r"\bbasically\b", r"\bliterally\b",
-    r"\bkind of\b", r"\bsort of\b",
+    r"\bum+\b",
+    r"\buh+\b",
+    r"\bah+\b",
+    r"\beh+\b",
+    r"\ber+\b",
+    r"\bhmm+\b",
+    r"\bhm+\b",
+    r"\bmm+\b",
+    r"\byou know\b",
+    r"\bbasically\b",
+    r"\bliterally\b",
+    r"\bkind of\b",
+    r"\bsort of\b",
 ]
 
 # Sentence-start fillers — only strip when at start of sentence
@@ -87,97 +95,98 @@ POINTWISE_TRIGGERS = [
 # match before their shorter substrings do.
 SYMBOL_MAP: list[tuple[str, str]] = [
     # Math / science
-    ("plus minus symbol",        "±"),
-    ("plus or minus symbol",     "±"),
-    ("plus or minus",            "±"),
-    ("plus minus",               "±"),
-    ("not equal to",             "≠"),
-    ("not equal",                "≠"),
-    ("not equals",               "≠"),
-    ("approximately equal to",   "≈"),
-    ("approximately equal",      "≈"),
-    ("approximately",            "≈"),
-    ("less than or equal to",    "≤"),
-    ("less than or equal",       "≤"),
+    ("plus minus symbol", "±"),
+    ("plus or minus symbol", "±"),
+    ("plus or minus", "±"),
+    ("plus minus", "±"),
+    ("not equal to", "≠"),
+    ("not equal", "≠"),
+    ("not equals", "≠"),
+    ("approximately equal to", "≈"),
+    ("approximately equal", "≈"),
+    ("approximately", "≈"),
+    ("less than or equal to", "≤"),
+    ("less than or equal", "≤"),
     ("greater than or equal to", "≥"),
-    ("greater than or equal",    "≥"),
-    ("infinity symbol",          "∞"),
-    ("infinity sign",            "∞"),
-    ("square root symbol",       "√"),
-    ("square root",              "√"),
-    ("micro symbol",             "μ"),
-    ("micro sign",               "μ"),
-    ("pi symbol",                "π"),
-    ("delta symbol",             "Δ"),
-    ("sigma symbol",             "Σ"),
-    ("summation symbol",         "Σ"),
-    ("superscript two",          "²"),
-    ("superscript 2",            "²"),
-    ("squared symbol",           "²"),
-    ("superscript three",        "³"),
-    ("superscript 3",            "³"),
-    ("cubed symbol",             "³"),
+    ("greater than or equal", "≥"),
+    ("infinity symbol", "∞"),
+    ("infinity sign", "∞"),
+    ("square root symbol", "√"),
+    ("square root", "√"),
+    ("micro symbol", "μ"),
+    ("micro sign", "μ"),
+    ("pi symbol", "π"),
+    ("delta symbol", "Δ"),
+    ("sigma symbol", "Σ"),
+    ("summation symbol", "Σ"),
+    ("superscript two", "²"),
+    ("superscript 2", "²"),
+    ("squared symbol", "²"),
+    ("superscript three", "³"),
+    ("superscript 3", "³"),
+    ("cubed symbol", "³"),
     # Legal / commercial
-    ("copyright symbol",         "©"),
-    ("copyright sign",           "©"),
-    ("trademark symbol",         "™"),
-    ("trade mark symbol",        "™"),
-    ("trademark sign",           "™"),
-    ("registered trademark",     "®"),
-    ("registered symbol",        "®"),
-    ("registered sign",          "®"),
+    ("copyright symbol", "©"),
+    ("copyright sign", "©"),
+    ("trademark symbol", "™"),
+    ("trade mark symbol", "™"),
+    ("trademark sign", "™"),
+    ("registered trademark", "®"),
+    ("registered symbol", "®"),
+    ("registered sign", "®"),
     # Temperature / measurement
-    ("degree symbol",            "°"),
-    ("degrees symbol",           "°"),
-    ("degree sign",              "°"),
+    ("degree symbol", "°"),
+    ("degrees symbol", "°"),
+    ("degree sign", "°"),
     # Arrows
-    ("left right arrow",         "↔"),
-    ("double arrow",             "↔"),
-    ("right arrow",              "→"),
-    ("arrow right",              "→"),
-    ("left arrow",               "←"),
-    ("arrow left",               "←"),
-    ("up arrow",                 "↑"),
-    ("arrow up",                 "↑"),
-    ("down arrow",               "↓"),
-    ("arrow down",               "↓"),
+    ("left right arrow", "↔"),
+    ("double arrow", "↔"),
+    ("right arrow", "→"),
+    ("arrow right", "→"),
+    ("left arrow", "←"),
+    ("arrow left", "←"),
+    ("up arrow", "↑"),
+    ("arrow up", "↑"),
+    ("down arrow", "↓"),
+    ("arrow down", "↓"),
     # Typography
-    ("ellipsis symbol",          "…"),
-    ("dot dot dot",              "…"),
-    ("em dash",                  "—"),
-    ("long dash",                "—"),
-    ("en dash",                  "–"),
-    ("bullet point symbol",      "•"),
-    ("bullet symbol",            "•"),
-    ("bullet point",             "•"),
-    ("section symbol",           "§"),
-    ("section sign",             "§"),
-    ("paragraph symbol",         "¶"),
-    ("paragraph sign",           "¶"),
+    ("ellipsis symbol", "…"),
+    ("dot dot dot", "…"),
+    ("em dash", "—"),
+    ("long dash", "—"),
+    ("en dash", "–"),
+    ("bullet point symbol", "•"),
+    ("bullet symbol", "•"),
+    ("bullet point", "•"),
+    ("section symbol", "§"),
+    ("section sign", "§"),
+    ("paragraph symbol", "¶"),
+    ("paragraph sign", "¶"),
     # Check / cross
-    ("check mark symbol",        "✓"),
-    ("checkmark symbol",         "✓"),
-    ("check mark",               "✓"),
-    ("checkmark",                "✓"),
-    ("cross mark symbol",        "✗"),
-    ("x mark symbol",            "✗"),
-    ("cross mark",               "✗"),
+    ("check mark symbol", "✓"),
+    ("checkmark symbol", "✓"),
+    ("check mark", "✓"),
+    ("checkmark", "✓"),
+    ("cross mark symbol", "✗"),
+    ("x mark symbol", "✗"),
+    ("cross mark", "✗"),
     # Currency extras
-    ("euro symbol",              "€"),
-    ("euro sign",                "€"),
-    ("pound symbol",             "£"),
-    ("pound sign",               "£"),
-    ("yen symbol",               "¥"),
-    ("yen sign",                 "¥"),
-    ("cent symbol",              "¢"),
-    ("cent sign",                "¢"),
+    ("euro symbol", "€"),
+    ("euro sign", "€"),
+    ("pound symbol", "£"),
+    ("pound sign", "£"),
+    ("yen symbol", "¥"),
+    ("yen sign", "¥"),
+    ("cent symbol", "¢"),
+    ("cent sign", "¢"),
     # Misc
-    ("heart symbol",             "♥"),
-    ("star symbol",              "★"),
+    ("heart symbol", "♥"),
+    ("star symbol", "★"),
 ]
 
 
 # ─── Main Filter Class ────────────────────────────────────────────────────────
+
 
 class TextFilter:
 
@@ -194,14 +203,33 @@ class TextFilter:
 
         # Reject suspiciously short transcriptions (likely noise)
         words = text.split()
-        if len(words) == 1 and len(words[0]) <= 2 and words[0].lower() not in {
-            "hi", "no", "ok", "go", "do", "to", "up", "in", "on", "at",
-            "by", "as", "or", "if", "so", "an",
-        }:
+        if (
+            len(words) == 1
+            and len(words[0]) <= 2
+            and words[0].lower()
+            not in {
+                "hi",
+                "no",
+                "ok",
+                "go",
+                "do",
+                "to",
+                "up",
+                "in",
+                "on",
+                "at",
+                "by",
+                "as",
+                "or",
+                "if",
+                "so",
+                "an",
+            }
+        ):
             return ""
 
         text = self._remove_fillers(text)
-        text = self._expand_symbols(text)       # ← symbol expansion
+        text = self._expand_symbols(text)  # ← symbol expansion
         text = self._remove_repeated_words(text)
         text = self._remove_repeated_phrases(text)
         text = self._fix_spacing(text)
@@ -273,11 +301,13 @@ class TextFilter:
             for phrase_len in range(min(6, n // 2), 1, -1):
                 if i + phrase_len * 2 > n:
                     continue
-                phrase_a = [w.lower() for w in words[i:i + phrase_len]]
-                phrase_b = [w.lower() for w in words[i + phrase_len:i + phrase_len * 2]]
+                phrase_a = [w.lower() for w in words[i : i + phrase_len]]
+                phrase_b = [
+                    w.lower() for w in words[i + phrase_len : i + phrase_len * 2]
+                ]
                 if phrase_a == phrase_b:
                     # Keep first occurrence only
-                    result.extend(words[i:i + phrase_len])
+                    result.extend(words[i : i + phrase_len])
                     i += phrase_len * 2
                     removed = True
                     break
@@ -308,7 +338,7 @@ class TextFilter:
         """
         for phrase, symbol in SYMBOL_MAP:
             # Word-boundary-aware replacement, case-insensitive
-            pattern = r'(?i)\b' + re.escape(phrase) + r'\b'
+            pattern = r"(?i)\b" + re.escape(phrase) + r"\b"
             text = re.sub(pattern, symbol, text)
         return text
 
@@ -319,7 +349,7 @@ class TextFilter:
         lower = text.lower().strip()
         for trigger in PROMPT_TRIGGERS:
             if lower.startswith(trigger):
-                remainder = text[len(trigger):].strip()
+                remainder = text[len(trigger) :].strip()
                 return True, remainder
         return False, text
 
@@ -331,7 +361,7 @@ class TextFilter:
         lower = text.lower().strip()
         for trigger in POINTWISE_TRIGGERS:
             if lower.startswith(trigger):
-                remainder = text[len(trigger):].strip().lstrip(",:- ")
+                remainder = text[len(trigger) :].strip().lstrip(",:- ")
                 if remainder:
                     return True, remainder
         return False, text

@@ -1,19 +1,5 @@
 # Mike — Changelog
 
-## [v2.5.0] — 2026-06-25 — zkPass Neon Serif Full UI Revamp
-
-### Changed
-- **Design System Overhaul**: Complete redesign of all UI surfaces from the Mode Dark Editorial system to the `zkPass Neon Serif` design spec:
-  - **Palette**: Deep black (`#000000`) background, white (`#FFFFFF`) cards/inputs, pure white text on dark, neon lime (`#C5FF4A`) as the sole accent.
-  - **Typography**: `PT Serif` for all display/headline text. `Inter Tight` (with `Segoe UI` fallback) for all UI labels, buttons, and navigation. Tight uppercase letter-spacing throughout.
-  - **Shapes**: Square corners (`border-radius: 0px`) on all buttons, inputs, and navigation. Cards use `0px` radius with a lime `border-top` accent bar instead of rounded corners.
-- **Dashboard**: Rewrote entire `QSS_MAIN` stylesheet. Stat cards are now white surfaces with black PT Serif 41px numbers and a 3px lime top accent bar. Session rows are white with black PT Serif preview text, 1px spacing. Sessions and Settings headings bumped to 41px. Filter bar uses Inter Tight uppercase labels.
-- **Sidebar**: Black background, lime accent bar beneath the brand wordmark, nav items styled as uppercase 10px Inter Tight with 3px lime left-border on active state. `KILL MIKE` / `WAKE MIKE` buttons use danger/lime treatments.
-- **HUD (`hud.py`)**: Replaced smooth anti-aliased pill polygon with a crisp flat `create_rectangle`. Updated all colors to the new palette: black background, white text, lime accent, ACCENT_RED for stop/cancel.
-- **Setup Wizard (`setup_wizard.py`)**: Black dialog, PT Serif 41px headline, Inter Tight body text, lime primary CTA button, white input on black surface.
-
----
-
 ## [v2.4.1] — 2026-06-25 — Hotfixes & Linting
 
 ### Fixed

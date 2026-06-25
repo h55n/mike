@@ -18,85 +18,84 @@ Fixes applied in this version:
   - HUD position saved on every geometry update during drag
 """
 
-import tkinter as tk
+import ctypes
 import math
 import threading
-import ctypes
 import time
-
+import tkinter as tk
 
 # ─── Design Tokens ───────────────────────────────────────────────────────────
-BG_PILL        = "#000000"      # Deep black
-BG_HOVER       = "#000000"      # Deep black hover
-BORDER_IDLE    = "#333333"      # Subtle border
-BORDER_ACTIVE  = "#E5E7EB"      # Neutral light border
-TEXT_PRIMARY   = "#FFFFFF"      # White body text
-TEXT_MUTED     = "#9CA3AF"      # Muted gray
-ACCENT_PINK    = "#C5FF4A"      # Lime accent
-ACCENT_GREEN   = "#C5FF4A"      # Lime confirm
-ACCENT_RED     = "#FF4D4F"      # Error red
-ACCENT_AMBER   = "#C5FF4A"      # Lime recording
+BG_PILL = "#000000"  # Deep black
+BG_HOVER = "#000000"  # Deep black hover
+BORDER_IDLE = "#333333"  # Subtle border
+BORDER_ACTIVE = "#E5E7EB"  # Neutral light border
+TEXT_PRIMARY = "#FFFFFF"  # White body text
+TEXT_MUTED = "#9CA3AF"  # Muted gray
+ACCENT_PINK = "#C5FF4A"  # Lime accent
+ACCENT_GREEN = "#C5FF4A"  # Lime confirm
+ACCENT_RED = "#FF4D4F"  # Error red
+ACCENT_AMBER = "#C5FF4A"  # Lime recording
 
-FONT_BODY   = ("Inter Tight", 8, "normal")
-FONT_SMALL  = ("Inter Tight", 8, "normal")
-FONT_BADGE  = ("Inter Tight", 6, "bold")
+FONT_BODY = ("Inter Tight", 8, "normal")
+FONT_SMALL = ("Inter Tight", 8, "normal")
+FONT_BADGE = ("Inter Tight", 6, "bold")
 
 # Window geometry
-PILL_W, PILL_H         = 68, 16       # Silent collapsed pill
-HOVER_W, HOVER_H       = 152, 52      # Hover expanded
-RECORD_W, RECORD_H     = 156, 30      # PTT recording with waveform
-CONT_W,   CONT_H       = 124, 22      # Continuous mode LIVE indicator
-NOTIF_W,  NOTIF_H      = 160, 26      # Notification toast size
+PILL_W, PILL_H = 68, 16  # Silent collapsed pill
+HOVER_W, HOVER_H = 152, 52  # Hover expanded
+RECORD_W, RECORD_H = 156, 30  # PTT recording with waveform
+CONT_W, CONT_H = 124, 22  # Continuous mode LIVE indicator
+NOTIF_W, NOTIF_H = 160, 26  # Notification toast size
 
-TASKBAR_H     = 52
-MARGIN_BOTTOM = 22    # Just above taskbar — lower, comfortable gap
-ANIM_STEPS    = 10    # More steps = smoother
-ANIM_DELAY    = 14    # ms per frame — ~70 fps feel
+TASKBAR_H = 52
+MARGIN_BOTTOM = 22  # Just above taskbar — lower, comfortable gap
+ANIM_STEPS = 10  # More steps = smoother
+ANIM_DELAY = 14  # ms per frame — ~70 fps feel
 
-WAVEFORM_BARS   = 9
-WAVEFORM_MAX_H  = 13
-WAVEFORM_MIN_H  = 3
+WAVEFORM_BARS = 9
+WAVEFORM_MAX_H = 13
+WAVEFORM_MIN_H = 3
 
 # Alpha per state
-ALPHA_SILENT    = 0.58
-ALPHA_ACTIVE    = 0.97
-ALPHA_CONT      = 0.92   # Continuous mode — visible but not intrusive
+ALPHA_SILENT = 0.58
+ALPHA_ACTIVE = 0.97
+ALPHA_CONT = 0.92  # Continuous mode — visible but not intrusive
 
 # Continuous pulse animation
-CONT_PULSE_MAX  = 0.88
-CONT_PULSE_MIN  = 0.30
+CONT_PULSE_MAX = 0.88
+CONT_PULSE_MIN = 0.30
 
 
 class MikeHUD:
     def __init__(self, engine_ref=None):
         self.engine = engine_ref
-        self.root   = tk.Tk()
+        self.root = tk.Tk()
 
-        self._state            = "silent"
-        self._prev_state       = "silent"
-        self._mode             = "raw"
-        self._wave_phase       = 0.0
-        self._wave_amplitudes  = [0.3] * WAVEFORM_BARS
-        self._audio_level      = 0.0
-        self._cont_pulse       = CONT_PULSE_MIN   # for continuous dot pulse
-        self._cont_pulse_dir   = 1
-        self._drag_x           = 0
-        self._drag_y           = 0
-        self._drag_win_x       = 0
-        self._drag_win_y       = 0
-        self._is_dragging      = False
-        self._hover_timer      = None
-        self._anim_frame       = None
-        self._current_w        = PILL_W
-        self._current_h        = PILL_H
-        self._target_w         = PILL_W
-        self._target_h         = PILL_H
+        self._state = "silent"
+        self._prev_state = "silent"
+        self._mode = "raw"
+        self._wave_phase = 0.0
+        self._wave_amplitudes = [0.3] * WAVEFORM_BARS
+        self._audio_level = 0.0
+        self._cont_pulse = CONT_PULSE_MIN  # for continuous dot pulse
+        self._cont_pulse_dir = 1
+        self._drag_x = 0
+        self._drag_y = 0
+        self._drag_win_x = 0
+        self._drag_win_y = 0
+        self._is_dragging = False
+        self._hover_timer = None
+        self._anim_frame = None
+        self._current_w = PILL_W
+        self._current_h = PILL_H
+        self._target_w = PILL_W
+        self._target_h = PILL_H
         # Track window position separately from geometry calls
-        self._win_x            = None
-        self._win_y            = None
-        self._elapsed_seconds  = 0
-        self._elapsed_timer    = None
-        self._canvas           = None
+        self._win_x = None
+        self._win_y = None
+        self._elapsed_seconds = 0
+        self._elapsed_timer = None
+        self._canvas = None
 
         self._setup_window()
         self._build_ui()
@@ -127,10 +126,10 @@ class MikeHUD:
         Add WS_EX_NOACTIVATE so window never steals keyboard focus.
         Must run after window is mapped so FindWindowW succeeds.
         """
-        GWL_EXSTYLE      = -20
+        GWL_EXSTYLE = -20
         WS_EX_TOOLWINDOW = 0x00000080
         WS_EX_NOACTIVATE = 0x08000000
-        WS_EX_LAYERED    = 0x00080000
+        WS_EX_LAYERED = 0x00080000
         try:
             hwnd = ctypes.windll.user32.FindWindowW(None, "Mike HUD")
             if hwnd:
@@ -174,7 +173,7 @@ class MikeHUD:
             self.root,
             width=self._current_w,
             height=self._current_h,
-            bg=CHROMA,        # Corners stay chroma → transparent to desktop
+            bg=CHROMA,  # Corners stay chroma → transparent to desktop
             highlightthickness=0,
             bd=0,
         )
@@ -192,8 +191,7 @@ class MikeHUD:
             self._draw_pill(c, w, h, r, BG_PILL, BORDER_IDLE)
             cx, cy = w // 2, h // 2
             # Pulsing mic dot in silent state
-            c.create_oval(cx - 3, cy - 4, cx + 3, cy + 4,
-                          fill=TEXT_MUTED, outline="")
+            c.create_oval(cx - 3, cy - 4, cx + 3, cy + 4, fill=TEXT_MUTED, outline="")
 
         elif self._state == "hover":
             self.root.wm_attributes("-alpha", ALPHA_ACTIVE)
@@ -221,16 +219,27 @@ class MikeHUD:
         mid_y = h // 2
 
         # Red X stop button (right side)
-        x_r   = 9
-        x_x   = w - x_r - 4
-        c.create_oval(x_x - x_r, mid_y - x_r,
-                      x_x + x_r, mid_y + x_r,
-                      fill="#2a1a1a", outline="#f87171", width=1,
-                      tags="cont_stop_btn")
-        c.create_text(x_x, mid_y, text="×",
-                      font=("Segoe UI", 10, "bold"),
-                      fill="#f87171", anchor="center",
-                      tags="cont_stop_btn")
+        x_r = 9
+        x_x = w - x_r - 4
+        c.create_oval(
+            x_x - x_r,
+            mid_y - x_r,
+            x_x + x_r,
+            mid_y + x_r,
+            fill="#2a1a1a",
+            outline="#f87171",
+            width=1,
+            tags="cont_stop_btn",
+        )
+        c.create_text(
+            x_x,
+            mid_y,
+            text="×",
+            font=("Segoe UI", 10, "bold"),
+            fill="#f87171",
+            anchor="center",
+            tags="cont_stop_btn",
+        )
 
         # Pulsing green dot (left) — clamp brightness to valid 0–255 range
         dot_r = int(3 + 2 * self._cont_pulse)
@@ -240,72 +249,168 @@ class MikeHUD:
 
         # Outer glow ring
         glow_r = dot_r + 2
-        c.create_oval(dot_x - glow_r, mid_y - glow_r,
-                      dot_x + glow_r, mid_y + glow_r,
-                      fill="", outline="#C5FF4A44" if self._cont_pulse > 0.6 else "#C5FF4A22",
-                      width=1)
-        c.create_oval(dot_x - dot_r, mid_y - dot_r,
-                      dot_x + dot_r, mid_y + dot_r,
-                      fill=dot_col, outline="#C5FF4A", width=1)
+        c.create_oval(
+            dot_x - glow_r,
+            mid_y - glow_r,
+            dot_x + glow_r,
+            mid_y + glow_r,
+            fill="",
+            outline="#C5FF4A44" if self._cont_pulse > 0.6 else "#C5FF4A22",
+            width=1,
+        )
+        c.create_oval(
+            dot_x - dot_r,
+            mid_y - dot_r,
+            dot_x + dot_r,
+            mid_y + dot_r,
+            fill=dot_col,
+            outline="#C5FF4A",
+            width=1,
+        )
 
         # LIVE label (centre-left)
-        c.create_text(dot_x + 14, mid_y, text="LIVE",
-                      font=("Segoe UI", 7, "bold"),
-                      fill="#C5FF4A", anchor="w")
+        c.create_text(
+            dot_x + 14,
+            mid_y,
+            text="LIVE",
+            font=("Segoe UI", 7, "bold"),
+            fill="#C5FF4A",
+            anchor="w",
+        )
 
     def _draw_hover_content(self, c, w, h):
         """Hover: Dictate label + hotkey + mode/settings/dashboard buttons."""
         # Top row
         mid_y = 15
-        c.create_text(w // 2 - 14, mid_y, text="Dictate",
-                      font=("Segoe UI", 7, "normal"), fill=TEXT_PRIMARY, anchor="e")
-        c.create_text(w // 2 - 9, mid_y, text="Ctrl+Shift",
-                      font=("Segoe UI", 7, "bold"), fill=ACCENT_PINK, anchor="w")
+        c.create_text(
+            w // 2 - 14,
+            mid_y,
+            text="Dictate",
+            font=("Segoe UI", 7, "normal"),
+            fill=TEXT_PRIMARY,
+            anchor="e",
+        )
+        c.create_text(
+            w // 2 - 9,
+            mid_y,
+            text="Ctrl+Shift",
+            font=("Segoe UI", 7, "bold"),
+            fill=ACCENT_PINK,
+            anchor="w",
+        )
 
         # Bottom row: 3 icon buttons
         badge_y = 37
         r_btn = 9
 
         # Mode badge (left) — cycles RAW / SF / POL on click
-        mode_label = {"raw": "RAW", "semi_formal": "SF", "polished": "POL"}.get(self._mode, "RAW")
-        mode_color  = {"raw": TEXT_MUTED, "semi_formal": ACCENT_GREEN, "polished": "#93c5fd"}.get(self._mode, TEXT_MUTED)
+        mode_label = {"raw": "RAW", "semi_formal": "SF", "polished": "POL"}.get(
+            self._mode, "RAW"
+        )
+        mode_color = {
+            "raw": TEXT_MUTED,
+            "semi_formal": ACCENT_GREEN,
+            "polished": "#93c5fd",
+        }.get(self._mode, TEXT_MUTED)
         bx = 22
-        c.create_oval(bx - r_btn, badge_y - r_btn, bx + r_btn, badge_y + r_btn,
-                      fill="#2a2723", outline=BORDER_ACTIVE, width=1)
-        c.create_text(bx, badge_y, text=mode_label, font=FONT_BADGE,
-                      fill=mode_color, anchor="center", tags="mode_badge")
+        c.create_oval(
+            bx - r_btn,
+            badge_y - r_btn,
+            bx + r_btn,
+            badge_y + r_btn,
+            fill="#2a2723",
+            outline=BORDER_ACTIVE,
+            width=1,
+        )
+        c.create_text(
+            bx,
+            badge_y,
+            text=mode_label,
+            font=FONT_BADGE,
+            fill=mode_color,
+            anchor="center",
+            tags="mode_badge",
+        )
 
         # Settings/Edit button (centre) — gear symbol
         ex = w // 2
-        c.create_oval(ex - r_btn, badge_y - r_btn, ex + r_btn, badge_y + r_btn,
-                      fill="#2a2723", outline=BORDER_ACTIVE, width=1)
-        c.create_text(ex, badge_y, text="\u2699",   # ⚙ gear
-                      font=("Segoe UI", 8),
-                      fill=TEXT_MUTED, anchor="center", tags="edit_btn")
+        c.create_oval(
+            ex - r_btn,
+            badge_y - r_btn,
+            ex + r_btn,
+            badge_y + r_btn,
+            fill="#2a2723",
+            outline=BORDER_ACTIVE,
+            width=1,
+        )
+        c.create_text(
+            ex,
+            badge_y,
+            text="\u2699",  # ⚙ gear
+            font=("Segoe UI", 8),
+            fill=TEXT_MUTED,
+            anchor="center",
+            tags="edit_btn",
+        )
 
         # Dashboard button (right) — triple bar
         dx = w - 22
-        c.create_oval(dx - r_btn, badge_y - r_btn, dx + r_btn, badge_y + r_btn,
-                      fill="#2a2723", outline=BORDER_ACTIVE, width=1)
-        c.create_text(dx, badge_y, text="\u2261",   # ≡ triple bar / dashboard
-                      font=("Segoe UI", 10, "bold"),
-                      fill=TEXT_MUTED, anchor="center", tags="dash_btn")
+        c.create_oval(
+            dx - r_btn,
+            badge_y - r_btn,
+            dx + r_btn,
+            badge_y + r_btn,
+            fill="#2a2723",
+            outline=BORDER_ACTIVE,
+            width=1,
+        )
+        c.create_text(
+            dx,
+            badge_y,
+            text="\u2261",  # ≡ triple bar / dashboard
+            font=("Segoe UI", 10, "bold"),
+            fill=TEXT_MUTED,
+            anchor="center",
+            tags="dash_btn",
+        )
 
     def _draw_record_content(self, c, w, h):
         """Recording/processing state: X | waveform/spinner | checkmark."""
         mid_y = h // 2
 
         # X button
-        c.create_oval(4, mid_y - 9, 20, mid_y + 9,
-                      fill="#2a1a1a", outline=ACCENT_RED, width=1)
-        c.create_text(12, mid_y, text="✕", font=("Segoe UI", 7, "bold"),
-                      fill=ACCENT_RED, anchor="center", tags="cancel_btn")
+        c.create_oval(
+            4, mid_y - 9, 20, mid_y + 9, fill="#2a1a1a", outline=ACCENT_RED, width=1
+        )
+        c.create_text(
+            12,
+            mid_y,
+            text="✕",
+            font=("Segoe UI", 7, "bold"),
+            fill=ACCENT_RED,
+            anchor="center",
+            tags="cancel_btn",
+        )
 
         # Checkmark button
-        c.create_oval(w - 20, mid_y - 9, w - 4, mid_y + 9,
-                      fill="#1a2a1a", outline=ACCENT_GREEN, width=1)
-        c.create_text(w - 12, mid_y, text="✓", font=("Segoe UI", 7, "bold"),
-                      fill=ACCENT_GREEN, anchor="center", tags="confirm_btn")
+        c.create_oval(
+            w - 20,
+            mid_y - 9,
+            w - 4,
+            mid_y + 9,
+            fill="#1a2a1a",
+            outline=ACCENT_GREEN,
+            width=1,
+        )
+        c.create_text(
+            w - 12,
+            mid_y,
+            text="✓",
+            font=("Segoe UI", 7, "bold"),
+            fill=ACCENT_GREEN,
+            anchor="center",
+            tags="confirm_btn",
+        )
 
         if self._state == "processing":
             # Spinner dots with pink accent
@@ -325,8 +430,14 @@ class MikeHUD:
                 g_val = max(0, min(255, g_val))
                 b_val = max(0, min(255, b_val))
                 col = f"#{r_val:02x}{g_val:02x}{b_val:02x}"
-                c.create_oval(dx_s - dot_r, dy_s - dot_r, dx_s + dot_r, dy_s + dot_r,
-                              fill=col, outline="")
+                c.create_oval(
+                    dx_s - dot_r,
+                    dy_s - dot_r,
+                    dx_s + dot_r,
+                    dy_s + dot_r,
+                    fill=col,
+                    outline="",
+                )
         else:
             # Waveform bars with warm accent gradient
             bar_w = 2
@@ -335,21 +446,22 @@ class MikeHUD:
             start_x = (w - total_bar_w) // 2
             center_i = WAVEFORM_BARS // 2
             for i, amp in enumerate(self._wave_amplitudes):
-                bar_h = max(2, int(WAVEFORM_MIN_H + (WAVEFORM_MAX_H - WAVEFORM_MIN_H) * amp))
+                bar_h = max(
+                    2, int(WAVEFORM_MIN_H + (WAVEFORM_MAX_H - WAVEFORM_MIN_H) * amp)
+                )
                 bx = start_x + i * (bar_w + spacing)
                 by = mid_y - bar_h // 2
                 # Color: center bars pink/amber, outer bars muted
                 center_dist = abs(i - center_i) / max(center_i, 1)
-                r_c = 197 # C5
-                g_c = 255 # FF
+                r_c = 197  # C5
+                g_c = 255  # FF
                 b_c = 74  # 4A
                 r_c = max(0, min(255, int(r_c * (0.3 + 0.7 * amp))))
                 g_c = max(0, min(255, int(g_c * (0.3 + 0.7 * amp))))
                 b_c = max(0, min(255, int(b_c * (0.3 + 0.7 * amp))))
                 col = f"#{r_c:02x}{g_c:02x}{b_c:02x}"
                 # Rounded rectangle via two rects + oval top/bottom
-                c.create_rectangle(bx, by, bx + bar_w, by + bar_h,
-                                   fill=col, outline="")
+                c.create_rectangle(bx, by, bx + bar_w, by + bar_h, fill=col, outline="")
 
     # ─── State Machine ────────────────────────────────────────────────────────
 
@@ -410,8 +522,12 @@ class MikeHUD:
         t = (step + 1) / ANIM_STEPS
         t_eased = 1 - (1 - t) ** 3
 
-        self._current_w = int(self._anim_start_w + (self._target_w - self._anim_start_w) * t_eased)
-        self._current_h = int(self._anim_start_h + (self._target_h - self._anim_start_h) * t_eased)
+        self._current_w = int(
+            self._anim_start_w + (self._target_w - self._anim_start_w) * t_eased
+        )
+        self._current_h = int(
+            self._anim_start_h + (self._target_h - self._anim_start_h) * t_eased
+        )
         self._apply_geometry()
         self._render_state()
 
@@ -434,7 +550,9 @@ class MikeHUD:
             y = sh - TASKBAR_H - self._current_h - MARGIN_BOTTOM
         else:
             # Keep the window centred on the saved centre-x (survives width changes)
-            saved_center_x = self._win_x + (self._target_w // 2 if not self._is_dragging else self._current_w // 2)
+            saved_center_x = self._win_x + (
+                self._target_w // 2 if not self._is_dragging else self._current_w // 2
+            )
             x = saved_center_x - self._current_w // 2
             x = max(0, min(x, sw - self._current_w))
             y = self._win_y
@@ -460,7 +578,9 @@ class MikeHUD:
                 base = 0.15 + 0.4 * self._audio_level
                 variation = 0.3 * math.sin(self._wave_phase * 2.5 + phase_offset)
                 target_amp = max(0.05, min(1.0, base + variation))
-                self._wave_amplitudes[i] += (target_amp - self._wave_amplitudes[i]) * 0.3
+                self._wave_amplitudes[i] += (
+                    target_amp - self._wave_amplitudes[i]
+                ) * 0.3
             self._render_state()
         elif self._state == "processing":
             self._render_state()
@@ -497,16 +617,16 @@ class MikeHUD:
 
     def _bind_events(self):
         c = self._canvas
-        c.bind("<Enter>",         self._on_mouse_enter)
-        c.bind("<Leave>",         self._on_mouse_leave)
+        c.bind("<Enter>", self._on_mouse_enter)
+        c.bind("<Leave>", self._on_mouse_leave)
         c.bind("<ButtonPress-1>", self._on_drag_start)
-        c.bind("<B1-Motion>",     self._on_drag_motion)
+        c.bind("<B1-Motion>", self._on_drag_motion)
         c.bind("<ButtonRelease-1>", self._on_drag_end)
-        c.tag_bind("cancel_btn",    "<Button-1>", self._on_cancel)
-        c.tag_bind("confirm_btn",   "<Button-1>", self._on_confirm)
-        c.tag_bind("mode_badge",    "<Button-1>", self._on_mode_click)
-        c.tag_bind("dash_btn",      "<Button-1>", self._on_dashboard)
-        c.tag_bind("edit_btn",      "<Button-1>", self._on_edit)
+        c.tag_bind("cancel_btn", "<Button-1>", self._on_cancel)
+        c.tag_bind("confirm_btn", "<Button-1>", self._on_confirm)
+        c.tag_bind("mode_badge", "<Button-1>", self._on_mode_click)
+        c.tag_bind("dash_btn", "<Button-1>", self._on_dashboard)
+        c.tag_bind("edit_btn", "<Button-1>", self._on_edit)
         c.tag_bind("cont_stop_btn", "<Button-1>", self._on_stop_continuous)
 
     def _on_mouse_enter(self, event):
@@ -623,8 +743,14 @@ class MikeHUD:
         c.delete("all")
         r = NOTIF_H // 2
         self._draw_pill(c, NOTIF_W, NOTIF_H, r, BG_HOVER, BORDER_ACTIVE)
-        c.create_text(NOTIF_W // 2, NOTIF_H // 2, text=text, font=FONT_SMALL,
-                      fill=TEXT_PRIMARY, anchor="center")
+        c.create_text(
+            NOTIF_W // 2,
+            NOTIF_H // 2,
+            text=text,
+            font=FONT_SMALL,
+            fill=TEXT_PRIMARY,
+            anchor="center",
+        )
 
         def _restore():
             self._canvas.config(width=self._current_w, height=self._current_h)

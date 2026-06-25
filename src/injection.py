@@ -4,11 +4,12 @@ Uses clipboard for speed. Falls back to character typing for incompatible apps.
 Fix: adds small delay after clipboard write to prevent double-paste race condition.
 """
 
-import time
-import threading
 import logging
-import pyperclip
+import threading
+import time
+
 import pyautogui
+import pyperclip
 
 logger = logging.getLogger("mike.injection")
 
@@ -17,7 +18,7 @@ pyautogui.PAUSE = 0.0
 
 # Words threshold: below this → clipboard paste; above → still clipboard
 # (keyboard.type is too slow for long text and causes double-char issues)
-CLIPBOARD_THRESHOLD = 5   # Always use clipboard for 5+ words
+CLIPBOARD_THRESHOLD = 5  # Always use clipboard for 5+ words
 
 # Lock prevents two injections running simultaneously
 _inject_lock = threading.Lock()
@@ -51,11 +52,11 @@ class TextInjector:
 
             # Write our text
             pyperclip.copy(text)
-            time.sleep(0.05)   # Allow clipboard to settle
+            time.sleep(0.05)  # Allow clipboard to settle
 
             # Paste
             pyautogui.hotkey("ctrl", "v")
-            time.sleep(0.08)   # Wait for paste to complete
+            time.sleep(0.08)  # Wait for paste to complete
 
             # Restore original clipboard after a brief delay
             def restore():

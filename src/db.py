@@ -3,11 +3,11 @@ db.py — SQLite Access Layer
 WAL mode for reliability. Thread-safe via connection-per-thread pattern.
 """
 
-import sqlite3
-import threading
-import pathlib
 import datetime
 import logging
+import pathlib
+import sqlite3
+import threading
 
 logger = logging.getLogger("mike.db")
 
@@ -59,16 +59,33 @@ class Database:
         c.execute(CREATE_SETTINGS)
         c.commit()
 
-    def save_session(self, duration_seconds, word_count, char_count,
-                     mode, session_type, raw_transcript, final_text, app_name=None):
+    def save_session(
+        self,
+        duration_seconds,
+        word_count,
+        char_count,
+        mode,
+        session_type,
+        raw_transcript,
+        final_text,
+        app_name=None,
+    ):
         try:
             self._conn().execute(
                 """INSERT INTO sessions
                    (duration_seconds, word_count, char_count, mode,
                     session_type, raw_transcript, final_text, app_name)
                    VALUES (?,?,?,?,?,?,?,?)""",
-                (duration_seconds, word_count, char_count, mode,
-                 session_type, raw_transcript, final_text, app_name)
+                (
+                    duration_seconds,
+                    word_count,
+                    char_count,
+                    mode,
+                    session_type,
+                    raw_transcript,
+                    final_text,
+                    app_name,
+                ),
             )
             self._conn().commit()
         except Exception as e:
@@ -76,9 +93,13 @@ class Database:
 
     def get_sessions(self, limit: int = 200) -> list[dict]:
         try:
-            rows = self._conn().execute(
-                "SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?", (limit,)
-            ).fetchall()
+            rows = (
+                self._conn()
+                .execute(
+                    "SELECT * FROM sessions ORDER BY created_at DESC LIMIT ?", (limit,)
+                )
+                .fetchall()
+            )
             return [dict(r) for r in rows]
         except Exception as e:
             logger.error(f"get_sessions error: {e}")
@@ -86,9 +107,11 @@ class Database:
 
     def get_setting(self, key: str, default=None):
         try:
-            row = self._conn().execute(
-                "SELECT value FROM settings WHERE key=?", (key,)
-            ).fetchone()
+            row = (
+                self._conn()
+                .execute("SELECT value FROM settings WHERE key=?", (key,))
+                .fetchone()
+            )
             return row[0] if row else default
         except Exception:
             return default
@@ -97,7 +120,7 @@ class Database:
         try:
             self._conn().execute(
                 "INSERT OR REPLACE INTO settings (key, value) VALUES (?,?)",
-                (key, str(value))
+                (key, str(value)),
             )
             self._conn().commit()
         except Exception as e:

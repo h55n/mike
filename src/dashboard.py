@@ -4,63 +4,73 @@ Design: Mode Dark Editorial — deep forest-green surface, ivory text,
         serif headlines, Graphik-style utility labels.
 """
 
-import sys
-import os
-import socket
-import subprocess
-import pathlib
 import datetime
 import logging
-from paths import app_root, asset_path
+import os
+import pathlib
+import socket
+import subprocess
+import sys
+
+from PyQt6.QtCore import QDate, Qt, QTimer
+from PyQt6.QtGui import QFont, QIcon
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QComboBox,
-    QDateEdit, QFileDialog, QTextEdit, QStackedWidget,
+    QApplication,
+    QComboBox,
+    QDateEdit,
+    QFileDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QScrollArea,
+    QStackedWidget,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
-from PyQt6.QtCore import (
-    Qt, QDate, QTimer,
-)
-from PyQt6.QtGui import (
-    QFont, QIcon,
-)
+
+from paths import app_root, asset_path
 
 logger = logging.getLogger("mike.dashboard")
 
 
 # ─── Design Tokens (zkPass Neon Serif) ───────────────────────────────────────
 # Core palette
-_PRIMARY      = "#C5FF4A"   # vivid lime accent
-_SECONDARY    = "#FFFFFF"   # pure white text on dark
-_TERTIARY     = "#000000"   # deep black background
-_SURFACE      = "#000000"   # black surface
-_BORDER       = "#E5E7EB"   # neutral light border
-_MUTED        = "#9ca3af"   # muted grey for low emphasis
-_ERROR        = "#FF4D4F"   # red
-_NEUTRAL      = "#E5E7EB"   # neutral grey
+_PRIMARY = "#C5FF4A"  # vivid lime accent
+_SECONDARY = "#FFFFFF"  # pure white text on dark
+_TERTIARY = "#000000"  # deep black background
+_SURFACE = "#000000"  # black surface
+_BORDER = "#E5E7EB"  # neutral light border
+_MUTED = "#9ca3af"  # muted grey for low emphasis
+_ERROR = "#FF4D4F"  # red
+_NEUTRAL = "#E5E7EB"  # neutral grey
 
 # Derived interaction shades
-_SURFACE_HOVER   = "#111111"   # dark hover
-_CARD_BG         = "#FFFFFF"   # cards are white in this system
-_CARD_HOVER      = "#FAFAFA"   # light hover for cards
-_SIDEBAR_BG      = "#000000"   # black sidebar
-_INPUT_BG        = "#FFFFFF"   # white inputs
-_PRIMARY_HOVER   = "#B0E645"   # lime darker hover
+_SURFACE_HOVER = "#111111"  # dark hover
+_CARD_BG = "#FFFFFF"  # cards are white in this system
+_CARD_HOVER = "#FAFAFA"  # light hover for cards
+_SIDEBAR_BG = "#000000"  # black sidebar
+_INPUT_BG = "#FFFFFF"  # white inputs
+_PRIMARY_HOVER = "#B0E645"  # lime darker hover
 
-# Mode badge colors (zkPass: lime for polished, white for others)
+# Mode badge colors (kept distinct but tonal)
 _MODE_COLORS = {
-    "raw":        ("#000000", "#E5E7EB"),
-    "semi_formal": ("#000000", "#E5E7EB"),
-    "polished":   ("#000000", _PRIMARY),
+    "raw": (_MUTED, "#1a1a1a"),
+    "semi_formal": ("#6ee7b7", "#0d2a1e"),
+    "polished": ("#93c5fd", "#0d1a2e"),
 }
 
-# ─── Global Stylesheet (zkPass Neon Serif) ───────────────────────────────────
+# ─── Global Stylesheet ────────────────────────────────────────────────────────
 QSS_MAIN = f"""
 /* ── Root ── */
 QMainWindow, QWidget#root {{
     background: {_TERTIARY};
 }}
 QWidget {{
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', sans-serif;
 }}
 
 /* ── Scroll bars ── */
@@ -71,12 +81,12 @@ QScrollArea {{
 QScrollBar:vertical {{
     background: {_TERTIARY};
     width: 4px;
-    border-radius: 0px;
+    border-radius: 2px;
     margin: 2px 0;
 }}
 QScrollBar::handle:vertical {{
-    background: #333333;
-    border-radius: 0px;
+    background: {_BORDER};
+    border-radius: 2px;
     min-height: 28px;
 }}
 QScrollBar::handle:vertical:hover {{
@@ -88,18 +98,17 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none
 /* ── Inputs ── */
 QLineEdit {{
     background: {_INPUT_BG};
-    color: #000000;
+    color: {_SECONDARY};
     border: 1px solid {_BORDER};
-    border-radius: 0px;
+    border-radius: 8px;
     padding: 14px 16px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 15px;
-    font-weight: 300;
+    font-family: 'PT Serif', serif;
+    font-size: 14px;
     selection-background-color: {_PRIMARY};
-    selection-color: #000000;
 }}
 QLineEdit:focus {{
-    border: 1px solid #000000;
+    border: 1px solid {_MUTED};
+    background: #111111;
 }}
 QLineEdit::placeholder {{
     color: {_MUTED};
@@ -108,18 +117,18 @@ QLineEdit::placeholder {{
 /* ── ComboBox ── */
 QComboBox {{
     background: {_INPUT_BG};
-    color: #000000;
+    color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 0px;
+    border-radius: 8px;
     padding: 8px 12px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
     min-height: 36px;
-    letter-spacing: 0.16em;
 }}
 QComboBox:hover {{
-    border: 1px solid #000000;
+    border: 1px solid {_MUTED};
+    color: {_SECONDARY};
 }}
 QComboBox::drop-down {{
     border: none;
@@ -130,70 +139,69 @@ QComboBox::down-arrow {{
     height: 10px;
 }}
 QComboBox QAbstractItemView {{
-    background: #FFFFFF;
-    color: #000000;
+    background: #1a1a1a;
+    color: {_SECONDARY};
     border: 1px solid {_BORDER};
     selection-background-color: {_PRIMARY};
-    selection-color: #000000;
+    selection-color: {_SECONDARY};
     padding: 4px;
     outline: none;
 }}
 
 /* ── Buttons ── */
 
-/* Primary: lime fill, black text, square */
+/* Primary: ivory fill, dark green text */
 QPushButton#primary_btn {{
-    background: {_PRIMARY};
-    color: #000000;
+    background: {_SECONDARY};
+    color: {_PRIMARY};
     border: none;
-    border-radius: 0px;
-    padding: 19px 16px;
-    height: 48px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
+    border-radius: 8px;
+    padding: 17px 30px 16px;
+    height: 50px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0px;
 }}
 QPushButton#primary_btn:hover {{
-    background: {_PRIMARY_HOVER};
+    background: {_NEUTRAL};
 }}
 QPushButton#primary_btn:pressed {{
-    background: #96C93C;
+    background: #d8dcc8;
 }}
 
-/* Secondary: transparent, white text, square border */
+/* Secondary: transparent, ivory text, border */
 QPushButton#secondary_btn {{
     background: transparent;
     color: {_SECONDARY};
     border: 1px solid {_BORDER};
-    border-radius: 0px;
-    padding: 19px 16px;
-    height: 48px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.18em;
+    border-radius: 8px;
+    padding: 17px 30px 16px;
+    height: 50px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
 }}
 QPushButton#secondary_btn:hover {{
-    border-color: {_SECONDARY};
-    background: rgba(255,255,255,0.05);
+    border-color: {_MUTED};
+    background: rgba(238,242,227,0.05);
 }}
 
-/* Ghost: smaller uppercase utility button */
+/* Ghost: nav-style smaller button */
 QPushButton#ghost_btn {{
     background: transparent;
     color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 0px;
+    border-radius: 8px;
     padding: 10px 20px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
 }}
 QPushButton#ghost_btn:hover {{
     color: {_SECONDARY};
-    border-color: {_SECONDARY};
+    border-color: {_MUTED};
+    background: rgba(238,242,227,0.04);
 }}
 
 /* Copy button */
@@ -201,113 +209,110 @@ QPushButton#copy_btn {{
     background: transparent;
     color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 0px;
+    border-radius: 8px;
     padding: 6px 14px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
 }}
 QPushButton#copy_btn:hover {{
-    background: {_PRIMARY};
-    border-color: {_PRIMARY};
-    color: #000000;
+    background: rgba(4,63,46,0.3);
+    border-color: #6ee7b7;
+    color: #6ee7b7;
 }}
 
-/* Danger: error red */
+/* Danger: muted red */
 QPushButton#danger_btn {{
-    background: transparent;
+    background: rgba(217,107,107,0.12);
     color: {_ERROR};
-    border: 1px solid {_ERROR};
-    border-radius: 0px;
+    border: 1px solid rgba(217,107,107,0.35);
+    border-radius: 8px;
     padding: 10px 18px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
     min-height: 38px;
 }}
 QPushButton#danger_btn:hover {{
-    background: {_ERROR};
-    color: #FFFFFF;
+    background: rgba(217,107,107,0.22);
+    border-color: {_ERROR};
 }}
 
-/* Wake: lime accent */
+/* Wake: muted green */
 QPushButton#wake_btn {{
-    background: {_PRIMARY};
-    color: #000000;
-    border: none;
-    border-radius: 0px;
+    background: rgba(4,63,46,0.25);
+    color: #6ee7b7;
+    border: 1px solid rgba(110,231,183,0.3);
+    border-radius: 8px;
     padding: 10px 18px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
     min-height: 38px;
 }}
 QPushButton#wake_btn:hover {{
-    background: {_PRIMARY_HOVER};
+    background: rgba(4,63,46,0.40);
+    border-color: #6ee7b7;
 }}
 
 /* ── Date pickers ── */
 QDateEdit {{
     background: {_INPUT_BG};
-    color: #000000;
+    color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 0px;
+    border-radius: 8px;
     padding: 6px 10px;
-    font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 12px;
 }}
-QDateEdit:hover {{ border-color: #000000; }}
+QDateEdit:hover {{ border-color: {_MUTED}; }}
 QCalendarWidget {{
-    background: #FFFFFF;
-    color: #000000;
+    background: #1a1a1a;
+    color: {_SECONDARY};
 }}
 QCalendarWidget QAbstractItemView {{
-    background: #FFFFFF;
-    color: #000000;
+    background: #1a1a1a;
+    color: {_SECONDARY};
     selection-background-color: {_PRIMARY};
-    selection-color: #000000;
 }}
 """
 
 
 # ─── Stat Card ────────────────────────────────────────────────────────────────
 
+
 class StatCard(QWidget):
     """
-    A single stat tile: large serif number + Inter Tight uppercase label.
-    zkPass Neon Serif: white surface, black text, lime accent bar.
+    A single stat tile: large serif number + Graphik overline label.
+    Styled per Mode Dark Editorial card spec.
     """
-    def __init__(self, label: str, value: str, accent: str = _PRIMARY):
+
+    def __init__(self, label: str, value: str, accent: str = _MUTED):
         super().__init__()
         self.accent = accent
-        self.setFixedHeight(110)
+        self.setFixedHeight(104)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 18)
-        layout.setSpacing(8)
+        layout.setContentsMargins(20, 20, 20, 16)
+        layout.setSpacing(6)
 
         self.val_label = QLabel(str(value))
         self.val_label.setStyleSheet(f"""
             font-family: 'PT Serif', serif;
-            font-size: 41px;
+            font-size: 36px;
             font-weight: 400;
-            color: #000000;
-            letter-spacing: -1.134px;
-            line-height: 56px;
+            color: {_SECONDARY};
+            letter-spacing: -1px;
+            line-height: 43px;
         """)
 
         self.lbl_label = QLabel(label.upper())
         self.lbl_label.setStyleSheet(f"""
-            font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-            font-size: 10px;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 12px;
             font-weight: 600;
-            color: #666666;
-            letter-spacing: 0.18em;
+            color: {_MUTED};
+            letter-spacing: 0.06em;
         """)
 
         layout.addWidget(self.val_label)
@@ -317,11 +322,13 @@ class StatCard(QWidget):
             StatCard {{
                 background: {_CARD_BG};
                 border: 1px solid {_BORDER};
-                border-radius: 0px;
-                border-top: 3px solid {self.accent};
+                border-radius: 8px;
+                border-left: 3px solid {self.accent};
             }}
             StatCard:hover {{
                 background: {_CARD_HOVER};
+                border: 1px solid {_MUTED};
+                border-left: 3px solid {self.accent};
             }}
         """)
 
@@ -331,34 +338,37 @@ class StatCard(QWidget):
 
 # ─── Mode Badge ───────────────────────────────────────────────────────────────
 
+
 class ModeBadge(QLabel):
-    """Compact badge for RAW / SF / POL — zkPass chip style."""
+    """High-contrast capsule badge for RAW / SF / POL."""
+
     _LABELS = {"raw": "RAW", "semi_formal": "SF", "polished": "POL"}
 
     def __init__(self, mode: str):
         super().__init__()
-        fg, bg = _MODE_COLORS.get(mode, ("#000000", _NEUTRAL))
+        fg, bg = _MODE_COLORS.get(mode, (_MUTED, "#1a1a1a"))
         self.setText(self._LABELS.get(mode, mode.upper()))
-        self.setFixedSize(42, 20)
+        self.setFixedSize(42, 22)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet(f"""
             QLabel {{
                 background: {bg};
                 color: {fg};
-                border: none;
+                border: 1px solid {fg}55;
                 border-radius: 9999px;
-                font-family: 'Inter Tight', 'Segoe UI', sans-serif;
+                font-family: 'Segoe UI', sans-serif;
                 font-size: 9px;
                 font-weight: 600;
-                letter-spacing: 0.2em;
+                letter-spacing: 0.06em;
             }}
         """)
 
 
 # ─── Session Row ──────────────────────────────────────────────────────────────
 
+
 class SessionRow(QWidget):
-    """Expandable session entry — white card, black text, zkPass style."""
+    """Expandable session entry — dark surface, ivory text, editorial spacing."""
 
     def __init__(self, session: dict):
         super().__init__()
@@ -371,15 +381,15 @@ class SessionRow(QWidget):
             SessionRow {{
                 background: {_CARD_BG};
                 border: 1px solid {_BORDER};
-                border-radius: 0px;
+                border-radius: 8px;
             }}
             SessionRow:hover {{
+                border: 1px solid {_MUTED};
                 background: {_CARD_HOVER};
-                border-left: 3px solid {_PRIMARY};
             }}
         """)
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(20, 14, 16, 14)
+        self.main_layout.setContentsMargins(16, 14, 16, 14)
         self.main_layout.setSpacing(10)
 
         # ── Header row ──────────────────────────────────────────────────────
@@ -395,34 +405,28 @@ class SessionRow(QWidget):
 
         ts_lbl = QLabel(time_str)
         ts_lbl.setStyleSheet(
-            "color: #666666; font-size: 11px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-weight: 300; letter-spacing: 0.04em;"
+            f"color: {_MUTED}; font-size: 12px; font-family: 'Segoe UI', sans-serif;"
         )
 
         badge = ModeBadge(s.get("mode", "raw"))
 
         stype = s.get("session_type", "dictation")
-        type_lbl = QLabel("PROMPT" if stype == "prompt" else "DICTATE")
+        type_lbl = QLabel("⚡ PROMPT" if stype == "prompt" else "🎙 DICTATE")
         type_lbl.setStyleSheet(f"""
-            color: {'#000000' if stype == 'prompt' else '#000000'};
-            background: {_PRIMARY if stype == 'prompt' else _NEUTRAL};
-            font-size: 9px;
+            color: {'#f472b6' if stype == 'prompt' else _MUTED};
+            font-size: 12px;
             font-weight: 600;
-            font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-            letter-spacing: 0.2em;
-            padding: 2px 8px;
+            font-family: 'Segoe UI', sans-serif;
+            letter-spacing: 0.06em;
         """)
 
-        wc_lbl = QLabel(f"{s.get('word_count', 0)} WORDS")
+        wc_lbl = QLabel(f"{s.get('word_count', 0)} words")
         wc_lbl.setStyleSheet(
-            "color: #999999; font-size: 9px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-weight: 600; letter-spacing: 0.16em;"
+            f"color: {_BORDER}; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
         )
 
         self.arrow = QLabel("›")
-        self.arrow.setStyleSheet("color: #CCCCCC; font-size: 18px;")
+        self.arrow.setStyleSheet(f"color: {_BORDER}; font-size: 18px;")
 
         header.addWidget(ts_lbl)
         header.addWidget(badge)
@@ -438,9 +442,8 @@ class SessionRow(QWidget):
             preview_text += "…"
         self.preview_lbl = QLabel(preview_text)
         self.preview_lbl.setStyleSheet(
-            "color: #000000; font-size: 15px;"
-            " font-family: 'PT Serif', serif;"
-            " font-weight: 300; line-height: 1.5;"
+            f"color: {_MUTED}; font-size: 13px; "
+            f"font-family: 'PT Serif', serif; line-height: 1.5;"
         )
         self.preview_lbl.setWordWrap(True)
         self.main_layout.addWidget(self.preview_lbl)
@@ -449,35 +452,32 @@ class SessionRow(QWidget):
         self.full_text = QTextEdit()
         self.full_text.setPlainText(str(s.get("final_text", "")))
         self.full_text.setReadOnly(True)
-        self.full_text.setMaximumHeight(200)
-        self.full_text.setStyleSheet(
-            "QTextEdit {"
-            " background: #F9F9F9;"
-            " color: #000000;"
-            " border: 1px solid #E5E7EB;"
-            " border-radius: 0px;"
-            " padding: 14px 18px;"
-            " font-family: 'PT Serif', serif;"
-            " font-size: 15px;"
-            " font-weight: 300;"
-            " line-height: 1.6;"
-            "}"
-        )
+        self.full_text.setMaximumHeight(180)
+        self.full_text.setStyleSheet(f"""
+            QTextEdit {{
+                background: #0a0a0a;
+                color: {_SECONDARY};
+                border: none;
+                border-radius: 8px;
+                padding: 12px 16px;
+                font-family: 'PT Serif', serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }}
+        """)
         self.full_text.hide()
         self.main_layout.addWidget(self.full_text)
 
         # ── Copy row (expanded only) ─────────────────────────────────────────
         copy_row = QHBoxLayout()
         copy_row.setContentsMargins(0, 0, 0, 0)
-        self.copy_btn = QPushButton("COPY TEXT")
+        self.copy_btn = QPushButton("Copy text")
         self.copy_btn.setObjectName("copy_btn")
-        self.copy_btn.setFixedHeight(32)
+        self.copy_btn.setFixedHeight(30)
         self.copy_btn.clicked.connect(self._copy_text)
         self.copy_status = QLabel("")
         self.copy_status.setStyleSheet(
-            "color: #666666; font-size: 10px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-weight: 600; letter-spacing: 0.1em;"
+            "color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
         )
         copy_row.addWidget(self.copy_btn)
         copy_row.addWidget(self.copy_status)
@@ -508,10 +508,12 @@ class SessionRow(QWidget):
 
 # ─── Dashboard Window ─────────────────────────────────────────────────────────
 
+
 class DashboardWindow(QMainWindow):
     def __init__(self, db_ref=None):
         super().__init__()
         from config import Config
+
         self.config = Config()
         self.db = db_ref
         self._sessions = []
@@ -566,38 +568,31 @@ class DashboardWindow(QMainWindow):
         logo = QLabel("Mike")
         logo.setStyleSheet(f"""
             font-family: 'PT Serif', serif;
-            font-size: 41px;
+            font-size: 36px;
             font-weight: 400;
             color: {_SECONDARY};
-            letter-spacing: -1.134px;
-            line-height: 56px;
+            letter-spacing: -0.5px;
         """)
-        accent_bar = QWidget()
-        accent_bar.setFixedHeight(3)
-        accent_bar.setStyleSheet(f"background: {_PRIMARY}; border: none;")
-        sub = QLabel("VOICE DICTATION")
+        sub = QLabel("Voice Dictation")
         sub.setStyleSheet(
-            "color: #666666; font-size: 10px; font-weight: 600;"
-            " letter-spacing: 0.18em;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " margin-bottom: 8px; margin-top: 2px;"
+            f"color: #666666; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; font-family: 'Segoe UI', sans-serif;"
+            f" font-weight: 500; letter-spacing: 0.04em; margin-bottom: 24px;"
         )
         layout.addWidget(logo)
-        layout.addWidget(accent_bar)
         layout.addWidget(sub)
 
         # Divider
         divider = QFrame()
         divider.setFrameShape(QFrame.Shape.HLine)
-        divider.setStyleSheet(f"color: #222222; margin: 8px 0 16px 0;")
+        divider.setStyleSheet(f"color: {_BORDER}; margin: 8px 0 16px 0;")
         layout.addWidget(divider)
 
         # Nav items
         self._nav_btns = {}
         nav_items = [
-            ("Overview",  "overview"),
-            ("Sessions",  "sessions"),
-            ("Settings",  "settings"),
+            ("Overview", "overview"),
+            ("Sessions", "sessions"),
+            ("Settings", "settings"),
         ]
         for label, key in nav_items:
             btn = self._nav_button(label, key)
@@ -608,14 +603,13 @@ class DashboardWindow(QMainWindow):
         # ── Mic Controls ──────────────────────────────────────────────────────
         mic_label = QLabel("MIC CONTROLS")
         mic_label.setStyleSheet(
-            "color: #555555; font-size: 9px; font-weight: 600;"
-            " letter-spacing: 0.18em;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " margin-bottom: 8px; margin-top: 4px;"
+            f"color: {_BORDER}; font-size: 9px; font-weight: 600; "
+            f"letter-spacing: 0.1em; font-family: 'Segoe UI', sans-serif; "
+            f"margin-bottom: 8px; margin-top: 4px;"
         )
         layout.addWidget(mic_label)
 
-        kill_btn = QPushButton("KILL MIKE")
+        kill_btn = QPushButton("⏹  Kill Mike")
         kill_btn.setObjectName("danger_btn")
         kill_btn.setToolTip("Force-stop Mike completely")
         kill_btn.clicked.connect(self._kill_mic)
@@ -623,7 +617,7 @@ class DashboardWindow(QMainWindow):
 
         layout.addSpacing(6)
 
-        wake_btn = QPushButton("WAKE MIKE")
+        wake_btn = QPushButton("▶  Wake Mike")
         wake_btn.setObjectName("wake_btn")
         wake_btn.setToolTip("Reset Mike if glitched, or relaunch if not running")
         wake_btn.clicked.connect(self._wake_mike)
@@ -631,44 +625,40 @@ class DashboardWindow(QMainWindow):
 
         layout.addSpacing(12)
 
-        self.status_lbl = QLabel("● ACTIVE")
+        self.status_lbl = QLabel("● Active")
         self.status_lbl.setStyleSheet(
-            f"color: {_PRIMARY}; font-size: 10px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-weight: 600; letter-spacing: 0.12em;"
+            "color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
         )
         layout.addWidget(self.status_lbl)
 
         return sidebar
 
     def _nav_button(self, label: str, key: str):
-        btn = QPushButton(label.upper())
+        btn = QPushButton(label)
         btn.setCheckable(True)
         btn.setChecked(key == "overview")
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         btn.setStyleSheet(f"""
             QPushButton {{
                 background: transparent;
-                color: #555555;
+                color: {_MUTED};
                 border: none;
-                border-radius: 0px;
-                margin: 1px 0px;
-                padding: 12px 16px;
+                border-radius: 8px;
+                margin: 2px 12px;
+                padding: 11px 16px;
                 text-align: left;
-                font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-                font-size: 10px;
-                font-weight: 600;
-                letter-spacing: 0.18em;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 13px;
+                font-weight: 500;
             }}
             QPushButton:hover {{
-                background: rgba(255,255,255,0.04);
+                background: rgba(238,242,227,0.04);
                 color: {_SECONDARY};
             }}
             QPushButton:checked {{
-                background: transparent;
+                background: rgba(4,63,46,0.35);
                 color: {_SECONDARY};
-                border-left: 3px solid {_PRIMARY};
-                padding-left: 13px;
+                border-left: 2px solid #6ee7b7;
             }}
         """)
         btn.clicked.connect(lambda _checked, k=key: self._nav_to(k))
@@ -679,7 +669,9 @@ class DashboardWindow(QMainWindow):
         logger.info(f"Navigating to page: {key}")
         for k, b in self._nav_btns.items():
             b.setChecked(k == key)
-        self.stack.setCurrentIndex({"overview": 0, "sessions": 1, "settings": 2}.get(key, 0))
+        self.stack.setCurrentIndex(
+            {"overview": 0, "sessions": 1, "settings": 2}.get(key, 0)
+        )
 
     # ── Main Content ──────────────────────────────────────────────────────────
 
@@ -690,12 +682,12 @@ class DashboardWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-                # Topbar removed for cleaner UI
+        # Topbar removed for cleaner UI
 
         self.stack = QStackedWidget()
-        self.stack.addWidget(self._build_overview_page())   # 0
-        self.stack.addWidget(self._build_sessions_page())   # 1
-        self.stack.addWidget(self._build_settings_page())   # 2
+        self.stack.addWidget(self._build_overview_page())  # 0
+        self.stack.addWidget(self._build_sessions_page())  # 1
+        self.stack.addWidget(self._build_settings_page())  # 2
         layout.addWidget(self.stack, stretch=1)
 
         return container
@@ -750,21 +742,21 @@ class DashboardWindow(QMainWindow):
         heading = QLabel("Overview")
         heading.setStyleSheet(f"""
             font-family: 'PT Serif', serif;
-            font-size: 41px;
+            font-size: 36px;
             font-weight: 400;
             color: {_SECONDARY};
-            letter-spacing: -1.134px;
-            line-height: 56px;
+            letter-spacing: -0.5px;
+            line-height: 43px;
         """)
         layout.addWidget(heading)
 
         # Stat cards — 4 in a row
         stats_row = QHBoxLayout()
-        stats_row.setSpacing(1)
-        self.stat_total = StatCard("All Time Words",  "—", _PRIMARY)
-        self.stat_today = StatCard("Today",           "—", _PRIMARY)
-        self.stat_week  = StatCard("This Week",       "—", _PRIMARY)
-        self.stat_saved = StatCard("Time Saved (min)","—", _PRIMARY)
+        stats_row.setSpacing(12)
+        self.stat_total = StatCard("All Time Words", "—", "#6ee7b7")
+        self.stat_today = StatCard("Today", "—", "#93c5fd")
+        self.stat_week = StatCard("This Week", "—", "#f9a8d4")
+        self.stat_saved = StatCard("Time Saved (min)", "—", "#fcd34d")
         stats_row.addWidget(self.stat_total)
         stats_row.addWidget(self.stat_today)
         stats_row.addWidget(self.stat_week)
@@ -774,18 +766,20 @@ class DashboardWindow(QMainWindow):
         # Section label
         recent_label = QLabel("RECENT SESSIONS")
         recent_label.setStyleSheet(f"""
-            color: #555555;
-            font-size: 10px;
+            color: {_MUTED};
+            font-size: 12px;
             font-weight: 600;
-            letter-spacing: 0.18em;
-            font-family: 'Inter Tight', 'Segoe UI', sans-serif;
-            margin-top: 16px;
+            letter-spacing: 0.08em;
+            font-family: 'Segoe UI', sans-serif;
+            margin-top: 10px;
         """)
         layout.addWidget(recent_label)
 
         self.recent_scroll = QScrollArea()
         self.recent_scroll.setWidgetResizable(True)
-        self.recent_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.recent_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.recent_container = QWidget()
         self.recent_layout = QVBoxLayout(self.recent_container)
         self.recent_layout.setSpacing(8)
@@ -808,11 +802,10 @@ class DashboardWindow(QMainWindow):
         heading = QLabel("Session History")
         heading.setStyleSheet(f"""
             font-family: 'PT Serif', serif;
-            font-size: 41px;
+            font-size: 36px;
             font-weight: 400;
             color: {_SECONDARY};
-            letter-spacing: -1.134px;
-            line-height: 56px;
+            letter-spacing: -0.5px;
         """)
         layout.addWidget(heading)
 
@@ -823,9 +816,8 @@ class DashboardWindow(QMainWindow):
         def _lbl(text: str) -> QLabel:
             l = QLabel(text)
             l.setStyleSheet(
-                "color: #666666; font-size: 10px; font-weight: 600;"
-                " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-                " letter-spacing: 0.14em;"
+                f"color: {_MUTED}; font-size: 12px; font-weight: 500;"
+                f" font-family: 'Segoe UI', sans-serif;"
             )
             return l
 
@@ -838,10 +830,8 @@ class DashboardWindow(QMainWindow):
         self.type_filter.currentIndexChanged.connect(self._apply_filters)
 
         _date_style = (
-            "background: #FFFFFF; color: #000000;"
-            " border: 1px solid #E5E7EB; border-radius: 0px; padding: 6px 10px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-size: 10px; font-weight: 600; letter-spacing: 0.12em;"
+            f"background: {_INPUT_BG}; color: {_MUTED}; "
+            f"border: 1px solid {_BORDER}; border-radius: 8px; padding: 6px 10px;"
         )
         self.date_from = QDateEdit()
         self.date_from.setDate(QDate.currentDate().addDays(-30))
@@ -857,23 +847,25 @@ class DashboardWindow(QMainWindow):
 
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Search sessions…")
-        self.search_box.setFixedWidth(220)
+        self.search_box.setFixedWidth(200)
         self.search_box.setFixedHeight(36)
-        self.search_box.setStyleSheet(
-            "QLineEdit {"
-            " background: #FFFFFF;"
-            " color: #000000;"
-            " border: 1px solid #E5E7EB;"
-            " border-radius: 0px;"
-            " padding: 8px 14px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-size: 13px;"
-            "}"
-            " QLineEdit:focus { border: 1px solid #000000; }"
-        )
+        self.search_box.setStyleSheet(f"""
+            QLineEdit {{
+                background: {_INPUT_BG};
+                color: {_SECONDARY};
+                border: 1px solid {_BORDER};
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 13px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {_MUTED};
+            }}
+        """)
         self.search_box.textChanged.connect(self._on_search)
 
-        export_btn = QPushButton("EXPORT")
+        export_btn = QPushButton("Export")
         export_btn.setObjectName("ghost_btn")
         export_btn.setFixedHeight(36)
         export_btn.clicked.connect(self._export_sessions)
@@ -896,10 +888,12 @@ class DashboardWindow(QMainWindow):
 
         self.session_scroll = QScrollArea()
         self.session_scroll.setWidgetResizable(True)
-        self.session_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.session_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         self.sessions_container = QWidget()
         self.sessions_layout = QVBoxLayout(self.sessions_container)
-        self.sessions_layout.setSpacing(1)
+        self.sessions_layout.setSpacing(8)
         self.sessions_layout.setContentsMargins(0, 0, 4, 0)
         self.sessions_layout.addStretch()
         self.session_scroll.setWidget(self.sessions_container)
@@ -918,11 +912,10 @@ class DashboardWindow(QMainWindow):
         heading = QLabel("Settings")
         heading.setStyleSheet(f"""
             font-family: 'PT Serif', serif;
-            font-size: 41px;
+            font-size: 36px;
             font-weight: 400;
             color: {_SECONDARY};
-            letter-spacing: -1.134px;
-            line-height: 56px;
+            letter-spacing: -0.5px;
         """)
         layout.addWidget(heading)
 
@@ -935,18 +928,15 @@ class DashboardWindow(QMainWindow):
         api_title = QLabel("Groq API Key")
         api_title.setStyleSheet(f"""
             color: {_SECONDARY};
-            font-size: 21px;
-            font-weight: 300;
+            font-size: 16px;
+            font-weight: 400;
             font-family: 'PT Serif', serif;
-            letter-spacing: -0.2px;
         """)
         api_sub = QLabel(
             "Get your free key at console.groq.com — Whisper + LLaMA, no credit card needed."
         )
         api_sub.setStyleSheet(
-            "color: #666666; font-size: 13px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-weight: 300;"
+            f"color: {_MUTED}; font-size: 13px; font-family: 'Segoe UI', sans-serif;"
         )
         api_sub.setWordWrap(True)
 
@@ -987,18 +977,15 @@ class DashboardWindow(QMainWindow):
         inj_title = QLabel("Text Injection Method")
         inj_title.setStyleSheet(f"""
             color: {_SECONDARY};
-            font-size: 21px;
-            font-weight: 300;
+            font-size: 16px;
+            font-weight: 400;
             font-family: 'PT Serif', serif;
-            letter-spacing: -0.2px;
         """)
         inj_sub = QLabel(
             "Clipboard (fast, recommended) or Type (slower, more compatible with all apps)."
         )
         inj_sub.setStyleSheet(
-            "color: #666666; font-size: 13px;"
-            " font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
-            " font-weight: 300;"
+            f"color: {_MUTED}; font-size: 13px; font-family: 'Segoe UI', sans-serif;"
         )
         inj_sub.setWordWrap(True)
 
@@ -1033,8 +1020,7 @@ class DashboardWindow(QMainWindow):
             QWidget {{
                 background: {_CARD_BG};
                 border: 1px solid {_BORDER};
-                border-radius: 0px;
-                border-top: 3px solid {_PRIMARY};
+                border-radius: 8px;
             }}
         """)
         return card
@@ -1062,16 +1048,16 @@ class DashboardWindow(QMainWindow):
     def _update_stats(self):
         if not self._sessions:
             return
-        today    = datetime.date.today()
+        today = datetime.date.today()
         week_ago = today - datetime.timedelta(days=7)
 
         total_words = sum(s.get("word_count", 0) for s in self._sessions)
         today_words = sum(
-            s.get("word_count", 0) for s in self._sessions
-            if _session_date(s) == today
+            s.get("word_count", 0) for s in self._sessions if _session_date(s) == today
         )
         week_words = sum(
-            s.get("word_count", 0) for s in self._sessions
+            s.get("word_count", 0)
+            for s in self._sessions
             if _session_date(s) >= week_ago
         )
         time_saved = round(total_words / 45)
@@ -1113,14 +1099,14 @@ class DashboardWindow(QMainWindow):
 
     def _apply_filters(self):
         logger.info("Applying session filters")
-        search    = self.search_box.text().lower()
-        mode_idx  = self.mode_filter.currentIndex()
-        type_idx  = self.type_filter.currentIndex()
+        search = self.search_box.text().lower()
+        mode_idx = self.mode_filter.currentIndex()
+        type_idx = self.type_filter.currentIndex()
         date_from = self.date_from.date().toPyDate()
-        date_to   = self.date_to.date().toPyDate()
+        date_to = self.date_to.date().toPyDate()
 
-        mode_map  = {0: None, 1: "raw", 2: "semi_formal", 3: "polished"}
-        type_map  = {0: None, 1: "dictation", 2: "prompt"}
+        mode_map = {0: None, 1: "raw", 2: "semi_formal", 3: "polished"}
+        type_map = {0: None, 1: "dictation", 2: "prompt"}
         mode_filter = mode_map.get(mode_idx)
         type_filter = type_map.get(type_idx)
 
@@ -1248,14 +1234,18 @@ class DashboardWindow(QMainWindow):
         else:
             mike_exe = (
                 pathlib.Path(os.environ.get("LOCALAPPDATA", ""))
-                / "Programs" / "Mike" / "Mike.exe"
+                / "Programs"
+                / "Mike"
+                / "Mike.exe"
             )
             if mike_exe.exists():
                 try:
                     env = os.environ.copy()
                     for k in list(env.keys()):
-                        if k.startswith("_PYI") or k.startswith("_MEI") or k in (
-                            "TCL_LIBRARY", "TK_LIBRARY"
+                        if (
+                            k.startswith("_PYI")
+                            or k.startswith("_MEI")
+                            or k in ("TCL_LIBRARY", "TK_LIBRARY")
                         ):
                             env.pop(k, None)
                     subprocess.Popen(
@@ -1277,6 +1267,7 @@ class DashboardWindow(QMainWindow):
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
+
 def _session_date(s: dict) -> datetime.date:
     try:
         ts = s.get("created_at", "")
@@ -1286,6 +1277,7 @@ def _session_date(s: dict) -> datetime.date:
 
 
 # ─── Launch Helpers ───────────────────────────────────────────────────────────
+
 
 def launch_dashboard(db_ref=None):
     """Launch or show the dashboard window. Must be called from the Qt main thread."""
@@ -1312,6 +1304,7 @@ if __name__ == "__main__":
     Usage: python dashboard.py [db_path]
     """
     import ctypes
+
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(2)
     except Exception:
@@ -1328,6 +1321,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1]:
         try:
             from db import Database
+
             db_ref = Database(path=pathlib.Path(sys.argv[1]))
         except Exception as e:
             logger.error(f"[Dashboard] DB load error: {e}")

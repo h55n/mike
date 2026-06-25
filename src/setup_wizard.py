@@ -5,6 +5,7 @@ Design: Mode Dark Editorial — consistent with dashboard palette.
 """
 
 import logging
+
 logger = logging.getLogger("mike.setup_wizard")
 
 
@@ -15,12 +16,18 @@ def show_setup_wizard() -> str:
     """
     try:
         import sys
-        from PyQt6.QtWidgets import (
-            QApplication, QDialog, QVBoxLayout, QHBoxLayout,
-            QLabel, QLineEdit, QPushButton,
-        )
+
         from PyQt6.QtCore import Qt
         from PyQt6.QtGui import QFont
+        from PyQt6.QtWidgets import (
+            QApplication,
+            QDialog,
+            QHBoxLayout,
+            QLabel,
+            QLineEdit,
+            QPushButton,
+            QVBoxLayout,
+        )
 
         app = QApplication.instance() or QApplication(sys.argv)
 
@@ -79,7 +86,9 @@ def show_setup_wizard() -> str:
         layout.addWidget(key_input)
 
         err_lbl = QLabel("")
-        err_lbl.setStyleSheet("color: #d96b6b; font-size: 12px; font-family: 'Inter Tight', 'Segoe UI', sans-serif;")
+        err_lbl.setStyleSheet(
+            "color: #d96b6b; font-size: 12px; font-family: 'Inter Tight', 'Segoe UI', sans-serif;"
+        )
         layout.addWidget(err_lbl)
 
         btn_row = QHBoxLayout()
@@ -144,7 +153,9 @@ def show_setup_wizard() -> str:
         def _save():
             k = key_input.text().strip()
             if not k.startswith("gsk_") or len(k) < 20:
-                err_lbl.setText("Key must start with 'gsk_' and be at least 20 characters.")
+                err_lbl.setText(
+                    "Key must start with 'gsk_' and be at least 20 characters."
+                )
                 key_input.setStyleSheet(_neutral_style + " border: 1px solid #FF4D4F;")
                 return
             result["key"] = k

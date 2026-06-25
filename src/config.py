@@ -2,23 +2,24 @@
 config.py - Config file loader
 Reads config.json from %LOCALAPPDATA%/Mike/config.json
 """
+
 import json
-import pathlib
 import logging
+import pathlib
 
 logger = logging.getLogger("mike.config")
 
 CONFIG_PATH = pathlib.Path.home() / "AppData" / "Local" / "Mike" / "config.json"
 
 DEFAULTS = {
-    "groq_api_key":             "",
-    "default_mode":             "semi_formal",
-    "hud_opacity":              0.95,
-    "hud_x":                    None,
-    "hud_y":                    None,
+    "groq_api_key": "",
+    "default_mode": "semi_formal",
+    "hud_opacity": 0.95,
+    "hud_x": None,
+    "hud_y": None,
     "continuous_chunk_seconds": 5,
-    "transcription_language":   "en",
-    "inject_method":            "clipboard",
+    "transcription_language": "en",
+    "inject_method": "clipboard",
 }
 
 
@@ -38,7 +39,9 @@ class Config:
                 logger.warning(f"Config load error: {e} — using defaults")
 
     def get(self, key: str, default=None):
-        return self._data.get(key, default if default is not None else DEFAULTS.get(key))
+        return self._data.get(
+            key, default if default is not None else DEFAULTS.get(key)
+        )
 
     def reload(self):
         """Reload config from disk while preserving defaults for missing keys."""

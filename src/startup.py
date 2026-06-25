@@ -6,14 +6,15 @@ Handles two cases:
   - Running as Python script: register pythonw + main.py with cd /d guard
 """
 
-import sys
 import logging
 import pathlib
+import sys
+
 from paths import app_root, src_root
 
 logger = logging.getLogger("mike.startup")
 
-REG_KEY  = r"Software\Microsoft\Windows\CurrentVersion\Run"
+REG_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 APP_NAME = "Mike"
 
 _PROJECT_DIR = app_root()
@@ -41,6 +42,7 @@ def add_to_startup():
     """Register Mike in HKCU Run. Safe to call on every launch."""
     try:
         import winreg
+
         cmd = _build_command()
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_KEY, 0, winreg.KEY_SET_VALUE)
         winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, cmd)
@@ -53,6 +55,7 @@ def add_to_startup():
 def remove_from_startup():
     try:
         import winreg
+
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_KEY, 0, winreg.KEY_SET_VALUE)
         winreg.DeleteValue(key, APP_NAME)
         winreg.CloseKey(key)
@@ -66,6 +69,7 @@ def remove_from_startup():
 def is_in_startup() -> bool:
     try:
         import winreg
+
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, REG_KEY, 0, winreg.KEY_READ)
         winreg.QueryValueEx(key, APP_NAME)
         winreg.CloseKey(key)

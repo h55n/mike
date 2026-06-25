@@ -4,15 +4,16 @@ Modes: semi_formal, polished, prompt formatter, pointwise list formatter.
 All functions strip preamble, return clean output only.
 """
 
-import time
 import logging
+import time
+
 from groq import Groq
 
 logger = logging.getLogger("mike.ai")
 
 MODEL = "llama-3.3-70b-versatile"
 MAX_TOKENS = 1000
-TEMPERATURE = 0.25   # Low — consistent, not robotic
+TEMPERATURE = 0.25  # Low — consistent, not robotic
 
 MAX_RETRIES = 2
 RETRY_DELAYS = [1.5, 3.0]
@@ -77,8 +78,8 @@ Convert the content into a clean numbered list format:
 
 class AIProcessor:
     def __init__(self, config, filters=None):
-        self.config  = config
-        self.filters = filters   # TextFilter instance for output cleaning
+        self.config = config
+        self.filters = filters  # TextFilter instance for output cleaning
         self._client = None
         self._client_api_key = None
 
@@ -102,7 +103,7 @@ class AIProcessor:
                     model=MODEL,
                     messages=[
                         {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": text},
+                        {"role": "user", "content": text},
                     ],
                     max_tokens=MAX_TOKENS,
                     temperature=TEMPERATURE,
@@ -120,12 +121,14 @@ class AIProcessor:
             except Exception as e:
                 if attempt < MAX_RETRIES:
                     delay = RETRY_DELAYS[min(attempt, len(RETRY_DELAYS) - 1)]
-                    logger.warning(f"LLM attempt {attempt+1} failed: {e} — retrying in {delay}s")
+                    logger.warning(
+                        f"LLM attempt {attempt+1} failed: {e} — retrying in {delay}s"
+                    )
                     time.sleep(delay)
                     self._client = None
                 else:
                     logger.error(f"LLM failed: {e}")
-                    return text   # Fallback: return input unchanged
+                    return text  # Fallback: return input unchanged
 
     # ─── Public Methods ───────────────────────────────────────────────────────
 

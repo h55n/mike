@@ -1,10 +1,13 @@
 """
 tray.py — System Tray Icon (pystray)
 """
-import threading
+
 import logging
+import threading
+
 import pystray
 from PIL import Image, ImageDraw
+
 from paths import asset_path
 
 logger = logging.getLogger("mike.tray")
@@ -27,7 +30,7 @@ def _make_icon_image() -> Image.Image:
 class TrayIcon:
     def __init__(self, engine):
         self.engine = engine
-        self._icon  = None
+        self._icon = None
 
     def start(self):
         """Run tray icon (blocks — call in background thread)."""
@@ -38,15 +41,15 @@ class TrayIcon:
 
         def mic_status(item):
             """Dynamic label showing current engine state."""
-            state = getattr(self.engine, 'state', 'idle')
+            state = getattr(self.engine, "state", "idle")
             labels = {
-                'idle':           '● Mic: Idle',
-                'recording_ptt':  '🔴 Mic: Recording (PTT)',
-                'recording_cont': '🔴 Mic: LIVE',
-                'paused_cont':    '⏸ Mic: Paused',
-                'processing':     '⧗ Mic: Processing',
+                "idle": "● Mic: Idle",
+                "recording_ptt": "🔴 Mic: Recording (PTT)",
+                "recording_cont": "🔴 Mic: LIVE",
+                "paused_cont": "⏸ Mic: Paused",
+                "processing": "⧗ Mic: Processing",
             }
-            return labels.get(state, f'Mic: {state}')
+            return labels.get(state, f"Mic: {state}")
 
         menu = pystray.Menu(
             pystray.MenuItem("Mike", None, enabled=False),
@@ -76,7 +79,11 @@ class TrayIcon:
                 radio=True,
             ),
             pystray.Menu.SEPARATOR,
-            pystray.MenuItem("Open Dashboard", lambda i, it: self.engine.open_dashboard(), default=True),
+            pystray.MenuItem(
+                "Open Dashboard",
+                lambda i, it: self.engine.open_dashboard(),
+                default=True,
+            ),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Quit Mike", self._quit),
         )
@@ -94,7 +101,9 @@ class TrayIcon:
     def _quit(self, icon, item):
         icon.stop()
         self.engine.shutdown()
-        import os, sys
+        import os
+        import sys
+
         os._exit(0)
 
     def update_icon(self, state: str):
