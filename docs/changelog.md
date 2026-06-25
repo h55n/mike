@@ -1,5 +1,13 @@
 # Mike — Changelog
 
+## [v2.4.1] — 2026-06-25 — Hotfixes & Linting
+
+### Fixed
+- **`export_btn` NameError**: Fixed a critical crash where the dashboard would fail to launch due to `export_btn` being undefined. Properly initialized the search and export buttons within the Sessions layout.
+- **Linting & Hygiene**: Addressed unused PyQt6 imports and missing f-string placeholders highlighted by flake8.
+
+---
+
 ## [v2.4.0] — 2026-06-25 — Mode Dark Editorial UI Revamp
 
 ### Added
