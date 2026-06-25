@@ -18,10 +18,10 @@ from PyQt6.QtWidgets import (
     QDateEdit, QFileDialog, QTextEdit, QStackedWidget,
 )
 from PyQt6.QtCore import (
-    Qt, QDate, QTimer, QSize,
+    Qt, QDate, QTimer,
 )
 from PyQt6.QtGui import (
-    QFont, QColor, QIcon,
+    QFont, QIcon,
 )
 
 logger = logging.getLogger("mike.dashboard")
@@ -462,7 +462,7 @@ class SessionRow(QWidget):
         self.copy_btn.clicked.connect(self._copy_text)
         self.copy_status = QLabel("")
         self.copy_status.setStyleSheet(
-            f"color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+            "color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
         )
         copy_row.addWidget(self.copy_btn)
         copy_row.addWidget(self.copy_status)
@@ -610,7 +610,7 @@ class DashboardWindow(QMainWindow):
 
         self.status_lbl = QLabel("● Active")
         self.status_lbl.setStyleSheet(
-            f"color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+            "color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
         )
         layout.addWidget(self.status_lbl)
 
