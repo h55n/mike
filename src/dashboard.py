@@ -90,7 +90,7 @@ QLineEdit {{
     background: {_INPUT_BG};
     color: {_SECONDARY};
     border: 1px solid {_BORDER};
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 14px 16px;
     font-family: 'Times New Roman', serif;
     font-size: 14px;
@@ -109,7 +109,7 @@ QComboBox {{
     background: {_INPUT_BG};
     color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 8px 12px;
     font-family: 'Segoe UI', sans-serif;
     font-size: 12px;
@@ -145,7 +145,7 @@ QPushButton#primary_btn {{
     background: {_SECONDARY};
     color: {_PRIMARY};
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 17px 30px 16px;
     height: 50px;
     font-family: 'Segoe UI', sans-serif;
@@ -165,7 +165,7 @@ QPushButton#secondary_btn {{
     background: transparent;
     color: {_SECONDARY};
     border: 1px solid {_BORDER};
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 17px 30px 16px;
     height: 50px;
     font-family: 'Segoe UI', sans-serif;
@@ -182,7 +182,7 @@ QPushButton#ghost_btn {{
     background: transparent;
     color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 10px 20px;
     font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
@@ -199,7 +199,7 @@ QPushButton#copy_btn {{
     background: transparent;
     color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 6px 14px;
     font-family: 'Segoe UI', sans-serif;
     font-size: 11px;
@@ -216,7 +216,7 @@ QPushButton#danger_btn {{
     background: rgba(217,107,107,0.12);
     color: {_ERROR};
     border: 1px solid rgba(217,107,107,0.35);
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 10px 18px;
     font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
@@ -233,7 +233,7 @@ QPushButton#wake_btn {{
     background: rgba(4,63,46,0.25);
     color: #6ee7b7;
     border: 1px solid rgba(110,231,183,0.3);
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 10px 18px;
     font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
@@ -250,7 +250,7 @@ QDateEdit {{
     background: {_INPUT_BG};
     color: {_MUTED};
     border: 1px solid {_BORDER};
-    border-radius: 4px;
+    border-radius: 8px;
     padding: 6px 10px;
     font-family: 'Segoe UI', sans-serif;
     font-size: 12px;
@@ -297,7 +297,7 @@ class StatCard(QWidget):
         self.lbl_label = QLabel(label.upper())
         self.lbl_label.setStyleSheet(f"""
             font-family: 'Segoe UI', sans-serif;
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             color: {_MUTED};
             letter-spacing: 0.06em;
@@ -399,7 +399,7 @@ class SessionRow(QWidget):
         type_lbl = QLabel("⚡ PROMPT" if stype == "prompt" else "🎙 DICTATE")
         type_lbl.setStyleSheet(f"""
             color: {'#f472b6' if stype == 'prompt' else _MUTED};
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             font-family: 'Segoe UI', sans-serif;
             letter-spacing: 0.06em;
@@ -443,7 +443,7 @@ class SessionRow(QWidget):
                 background: #0a0a0a;
                 color: {_SECONDARY};
                 border: none;
-                border-radius: 4px;
+                border-radius: 8px;
                 padding: 12px 16px;
                 font-family: 'Times New Roman', serif;
                 font-size: 14px;
@@ -476,12 +476,14 @@ class SessionRow(QWidget):
         self.mousePressEvent = self._toggle_expand
 
     def _copy_text(self):
+        logger.info("Session text copied to clipboard")
         text = str(self.session.get("final_text", ""))
         QApplication.clipboard().setText(text)
         self.copy_status.setText("Copied!")
         QTimer.singleShot(2000, lambda: self.copy_status.setText(""))
 
     def _toggle_expand(self, event):
+        logger.debug(f"Toggled session row expansion: {not self.expanded}")
         self.expanded = not self.expanded
         self.full_text.setVisible(self.expanded)
         self.copy_row_widget.setVisible(self.expanded)
@@ -549,7 +551,7 @@ class DashboardWindow(QMainWindow):
         logo = QLabel("Mike")
         logo.setStyleSheet(f"""
             font-family: 'Georgia', 'Times New Roman', serif;
-            font-size: 28px;
+            font-size: 36px;
             font-weight: 400;
             color: {_SECONDARY};
             letter-spacing: -0.5px;
@@ -624,8 +626,8 @@ class DashboardWindow(QMainWindow):
                 background: transparent;
                 color: {_MUTED};
                 border: none;
-                border-left: 2px solid transparent;
-                border-radius: 0px;
+                border-radius: 8px;
+                margin: 2px 12px;
                 padding: 11px 16px;
                 text-align: left;
                 font-family: 'Segoe UI', sans-serif;
@@ -647,6 +649,7 @@ class DashboardWindow(QMainWindow):
         return btn
 
     def _nav_to(self, key: str):
+        logger.info(f"Navigating to page: {key}")
         for k, b in self._nav_btns.items():
             b.setChecked(k == key)
         self.stack.setCurrentIndex({"overview": 0, "sessions": 1, "settings": 2}.get(key, 0))
@@ -660,7 +663,7 @@ class DashboardWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        layout.addWidget(self._build_topbar())
+                # Topbar removed for cleaner UI
 
         self.stack = QStackedWidget()
         self.stack.addWidget(self._build_overview_page())   # 0
@@ -688,7 +691,7 @@ class DashboardWindow(QMainWindow):
                 background: {_INPUT_BG};
                 color: {_SECONDARY};
                 border: 1px solid {_BORDER};
-                border-radius: 4px;
+                border-radius: 8px;
                 padding: 8px 14px;
                 font-family: 'Segoe UI', sans-serif;
                 font-size: 13px;
@@ -745,7 +748,7 @@ class DashboardWindow(QMainWindow):
         recent_label = QLabel("RECENT SESSIONS")
         recent_label.setStyleSheet(f"""
             color: {_MUTED};
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 600;
             letter-spacing: 0.08em;
             font-family: 'Segoe UI', sans-serif;
@@ -807,7 +810,7 @@ class DashboardWindow(QMainWindow):
 
         _date_style = (
             f"background: {_INPUT_BG}; color: {_MUTED}; "
-            f"border: 1px solid {_BORDER}; border-radius: 4px; padding: 6px 10px;"
+            f"border: 1px solid {_BORDER}; border-radius: 8px; padding: 6px 10px;"
         )
         self.date_from = QDateEdit()
         self.date_from.setDate(QDate.currentDate().addDays(-30))
@@ -832,6 +835,7 @@ class DashboardWindow(QMainWindow):
         filter_bar.addWidget(_lbl("To:"))
         filter_bar.addWidget(self.date_to)
         filter_bar.addStretch()
+        filter_bar.addWidget(export_btn)
         layout.addLayout(filter_bar)
 
         self.session_scroll = QScrollArea()
@@ -974,6 +978,7 @@ class DashboardWindow(QMainWindow):
     # ─── Data Loading ─────────────────────────────────────────────────────────
 
     def _load_data(self):
+        logger.debug("Loading dashboard data from database")
         if not self.db:
             self._load_mock_data()
             return
@@ -1039,9 +1044,11 @@ class DashboardWindow(QMainWindow):
     # ─── Filtering & Search ───────────────────────────────────────────────────
 
     def _on_search(self, _text: str):
+        logger.debug(f"Search query changed: {_text}")
         self._apply_filters()
 
     def _apply_filters(self):
+        logger.info("Applying session filters")
         search    = self.search_box.text().lower()
         mode_idx  = self.mode_filter.currentIndex()
         type_idx  = self.type_filter.currentIndex()
@@ -1071,6 +1078,7 @@ class DashboardWindow(QMainWindow):
     # ─── Export ───────────────────────────────────────────────────────────────
 
     def _export_sessions(self):
+        logger.info("Exporting sessions requested")
         path, _ = QFileDialog.getSaveFileName(
             self, "Export Sessions", "", "Text Files (*.txt);;All Files (*)"
         )
@@ -1088,7 +1096,7 @@ class DashboardWindow(QMainWindow):
 
     _KEY_INPUT_NEUTRAL = (
         f"background: {_INPUT_BG}; color: {_SECONDARY}; "
-        f"border: 1px solid {_BORDER}; border-radius: 4px; "
+        f"border: 1px solid {_BORDER}; border-radius: 8px; "
         f"padding: 14px 16px; font-family: 'Times New Roman', serif; font-size: 14px;"
     )
 
@@ -1099,6 +1107,7 @@ class DashboardWindow(QMainWindow):
         )
 
     def _save_api_key(self):
+        logger.info("Saving API key")
         key = self.api_key_input.text().strip()
         if not key.startswith("gsk_") or len(key) < 20:
             self.api_key_input.setStyleSheet(
@@ -1115,6 +1124,7 @@ class DashboardWindow(QMainWindow):
         self.api_key_input.setStyleSheet(self._KEY_INPUT_NEUTRAL)
 
     def _save_inject_method(self):
+        logger.info("Saving inject method")
         method = "clipboard" if self.inject_combo.currentIndex() == 0 else "type"
         self.config.set("inject_method", method)
 
@@ -1147,6 +1157,7 @@ class DashboardWindow(QMainWindow):
         )
 
     def _kill_mic(self):
+        logger.warning("Kill Mike requested")
         sent = self._send_mic_signal(b"KILL_MIC")
         if sent:
             self._set_status("⏹ Mike killed", _ERROR)
@@ -1154,6 +1165,7 @@ class DashboardWindow(QMainWindow):
             self._set_status("⚠ Mike not running", "#fcd34d")
 
     def _wake_mike(self):
+        logger.info("Wake Mike requested")
         probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         mike_alive = False
         try:
@@ -1194,6 +1206,7 @@ class DashboardWindow(QMainWindow):
                 self._set_status("⚠ Mike.exe not found", _ERROR)
 
     def refresh(self):
+        logger.info("Dashboard refresh triggered")
         """Reload data from DB."""
         self._load_data()
 
