@@ -1,7 +1,7 @@
 """
-dashboard.py — Mike Dashboard
-Full PyQt6 window: stats panel, session history, search, filter, export.
-Design: ElevenLabs-inspired — warm near-black, off-white, pastel accents.
+dashboard.py — Mike Dashboard  v2.4.0
+Design: Mode Dark Editorial — deep forest-green surface, ivory text,
+        serif headlines, Graphik-style utility labels.
 """
 
 import sys
@@ -15,291 +15,346 @@ from paths import app_root, asset_path
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QLineEdit, QPushButton, QScrollArea, QFrame, QComboBox,
-    QDateEdit, QFileDialog, QTextEdit, QSizeGrip, QStackedWidget,
-    QGraphicsDropShadowEffect, QSplitter, QListWidget, QListWidgetItem,
+    QDateEdit, QFileDialog, QTextEdit, QStackedWidget,
 )
 from PyQt6.QtCore import (
-    Qt, QDate, QThread, pyqtSignal, QTimer, QPropertyAnimation,
-    QEasingCurve, QSize, QPoint,
+    Qt, QDate, QTimer, QSize,
 )
 from PyQt6.QtGui import (
-    QFont, QColor, QPalette, QIcon, QPixmap, QPainter, QBrush, QPen,
-    QLinearGradient, QFontDatabase,
+    QFont, QColor, QIcon,
 )
 
 logger = logging.getLogger("mike.dashboard")
 
 
-# ─── Design Tokens ───────────────────────────────────────────────────────────
-CANVAS      = "#f5f4f2"
-CANVAS_SOFT = "#fafaf9"
-INK         = "#0c0a09"
-SURFACE     = "#ffffff"
-SURFACE_STR = "#f0efed"
-DARK_BG     = "#111110"
-DARK_CARD   = "#1c1917"
-DARK_HOVER  = "#28251f"
-HAIRLINE    = "#e7e5e4"
-BODY_TEXT   = "#4e4e4e"
-MUTED       = "#78716c"
-MUTED_SOFT  = "#a8a29e"
+# ─── Design Tokens (Mode Dark Editorial) ─────────────────────────────────────
+# Core palette
+_PRIMARY      = "#043f2e"   # deep forest-green — brand/accent
+_SECONDARY    = "#eef2e3"   # soft ivory — primary text on dark
+_TERTIARY     = "#121212"   # near-black page canvas
+_SURFACE      = "#0f2f25"   # deep green surface for sidebar / panels
+_BORDER       = "#374151"   # cool low-contrast divider
+_MUTED        = "#9ca3af"   # secondary/metadata text
+_ERROR        = "#d96b6b"   # muted red for errors/destructive
+_NEUTRAL      = "#f5f4ef"   # quieter off-white
 
-GRAD_MINT    = "#a7e5d3"
-GRAD_PEACH   = "#f4c5a8"
-GRAD_LAVEND  = "#c8b8e0"
-GRAD_SKY     = "#a8c8e8"
-GRAD_ROSE    = "#e8b8c4"
+# Derived interaction shades
+_SURFACE_HOVER   = "#163d2e"   # slightly lighter green for hover
+_CARD_BG         = "#121212"   # card interior
+_CARD_HOVER      = "#191919"   # card hover
+_SIDEBAR_BG      = "#0a2920"   # deeper than surface
+_INPUT_BG        = "#0c0c0c"   # input fields
+_PRIMARY_HOVER   = "#065a40"   # button hover
 
-ACCENT_PINK  = "#f472b6"
-ACCENT_GREEN = "#4ade80"
-ACCENT_AMBER = "#fbbf24"
-
-BADGE_RAW    = "#1c1917"
-BADGE_SF     = "#1c2d1a"
-BADGE_POL    = "#1a1c2d"
-
-# Mode badge text colors
-MODE_COLORS = {
-    "raw":        ("#f5f4f2", "#2a2723"),
-    "semi_formal": ("#4ade80", "#1c2d1a"),
-    "polished":   ("#93c5fd", "#1a1c2d"),
+# Mode badge colors (kept distinct but tonal)
+_MODE_COLORS = {
+    "raw":        (_MUTED,    "#1a1a1a"),
+    "semi_formal": ("#6ee7b7", "#0d2a1e"),
+    "polished":   ("#93c5fd", "#0d1a2e"),
 }
 
-QSS_MAIN = """
-QMainWindow, QWidget#root {
-    background: #111110;
-}
-QScrollArea {
+# ─── Global Stylesheet ────────────────────────────────────────────────────────
+QSS_MAIN = f"""
+/* ── Root ── */
+QMainWindow, QWidget#root {{
+    background: {_TERTIARY};
+}}
+QWidget {{
+    font-family: 'Segoe UI', sans-serif;
+}}
+
+/* ── Scroll bars ── */
+QScrollArea {{
     background: transparent;
     border: none;
-}
-QScrollBar:vertical {
-    background: #161412;
-    width: 5px;
+}}
+QScrollBar:vertical {{
+    background: {_TERTIARY};
+    width: 4px;
     border-radius: 2px;
     margin: 2px 0;
-}
-QScrollBar::handle:vertical {
-    background: #3d3935;
+}}
+QScrollBar::handle:vertical {{
+    background: {_BORDER};
     border-radius: 2px;
-    min-height: 24px;
-}
-QScrollBar::handle:vertical:hover {
-    background: #5a5652;
-}
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background: none; }
-QLineEdit {
-    background: #1c1917;
-    color: #f5f4f2;
-    border: 1px solid #2e2b28;
-    border-radius: 10px;
-    padding: 8px 14px;
-    font-family: 'Segoe UI';
-    font-size: 13px;
-    selection-background-color: #4a4540;
-}
-QLineEdit:focus {
-    border: 1px solid #5a5450;
-    background: #201d1a;
-}
-QComboBox {
-    background: #1c1917;
-    color: #a8a29e;
-    border: 1px solid #2e2b28;
-    border-radius: 8px;
-    padding: 5px 10px;
-    font-family: 'Segoe UI';
+    min-height: 28px;
+}}
+QScrollBar::handle:vertical:hover {{
+    background: {_MUTED};
+}}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {{ height: 0; }}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {{ background: none; }}
+
+/* ── Inputs ── */
+QLineEdit {{
+    background: {_INPUT_BG};
+    color: {_SECONDARY};
+    border: 1px solid {_BORDER};
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-family: 'Times New Roman', serif;
+    font-size: 14px;
+    selection-background-color: {_PRIMARY};
+}}
+QLineEdit:focus {{
+    border: 1px solid {_MUTED};
+    background: #111111;
+}}
+QLineEdit::placeholder {{
+    color: {_MUTED};
+}}
+
+/* ── ComboBox ── */
+QComboBox {{
+    background: {_INPUT_BG};
+    color: {_MUTED};
+    border: 1px solid {_BORDER};
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Segoe UI', sans-serif;
     font-size: 12px;
-}
-QComboBox:hover {
-    border: 1px solid #4a4540;
-    color: #d6d3d1;
-}
-QComboBox::drop-down { border: none; }
-QComboBox QAbstractItemView {
-    background: #1c1917;
-    color: #f5f4f2;
-    border: 1px solid #3d3935;
-    selection-background-color: #2e2b28;
-    selection-color: #f5f4f2;
+    font-weight: 500;
+    min-height: 36px;
+}}
+QComboBox:hover {{
+    border: 1px solid {_MUTED};
+    color: {_SECONDARY};
+}}
+QComboBox::drop-down {{
+    border: none;
+    width: 24px;
+}}
+QComboBox::down-arrow {{
+    width: 10px;
+    height: 10px;
+}}
+QComboBox QAbstractItemView {{
+    background: #1a1a1a;
+    color: {_SECONDARY};
+    border: 1px solid {_BORDER};
+    selection-background-color: {_PRIMARY};
+    selection-color: {_SECONDARY};
     padding: 4px;
-}
-QPushButton#pill_btn {
-    background: #2a2723;
-    color: #f5f4f2;
-    border: 1px solid #4a4540;
-    border-radius: 9999px;
-    padding: 8px 20px;
-    min-width: 80px;
-    font-family: 'Segoe UI';
+    outline: none;
+}}
+
+/* ── Buttons ── */
+
+/* Primary: ivory fill, dark green text */
+QPushButton#primary_btn {{
+    background: {_SECONDARY};
+    color: {_PRIMARY};
+    border: none;
+    border-radius: 4px;
+    padding: 17px 30px 16px;
+    height: 50px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0px;
+}}
+QPushButton#primary_btn:hover {{
+    background: {_NEUTRAL};
+}}
+QPushButton#primary_btn:pressed {{
+    background: #d8dcc8;
+}}
+
+/* Secondary: transparent, ivory text, border */
+QPushButton#secondary_btn {{
+    background: transparent;
+    color: {_SECONDARY};
+    border: 1px solid {_BORDER};
+    border-radius: 4px;
+    padding: 17px 30px 16px;
+    height: 50px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+}}
+QPushButton#secondary_btn:hover {{
+    border-color: {_MUTED};
+    background: rgba(238,242,227,0.05);
+}}
+
+/* Ghost: nav-style smaller button */
+QPushButton#ghost_btn {{
+    background: transparent;
+    color: {_MUTED};
+    border: 1px solid {_BORDER};
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-family: 'Segoe UI', sans-serif;
     font-size: 13px;
     font-weight: 500;
-}
-QPushButton#pill_btn:hover {
-    background: #3d3935;
-    color: #ffffff;
-    border-color: #6a6460;
-}
-QPushButton#pill_btn:pressed { background: #1c1917; }
-QPushButton#ghost_btn {
+}}
+QPushButton#ghost_btn:hover {{
+    color: {_SECONDARY};
+    border-color: {_MUTED};
+    background: rgba(238,242,227,0.04);
+}}
+
+/* Copy button */
+QPushButton#copy_btn {{
     background: transparent;
-    color: #a8a29e;
-    border: 1px solid #2e2b28;
-    border-radius: 9999px;
-    padding: 7px 18px;
-    min-width: 60px;
-    font-family: 'Segoe UI';
-    font-size: 12px;
-}
-QPushButton#ghost_btn:hover {
-    color: #f5f4f2;
-    border-color: #5a5450;
-    background: #1c1917;
-}
-QPushButton#ghost_btn:pressed { background: #111110; }
-QPushButton#copy_btn {
-    background: #1c1917;
-    color: #78716c;
-    border: 1px solid #2e2b28;
-    border-radius: 6px;
-    padding: 4px 12px;
-    font-family: 'Segoe UI';
+    color: {_MUTED};
+    border: 1px solid {_BORDER};
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-family: 'Segoe UI', sans-serif;
     font-size: 11px;
-}
-QPushButton#copy_btn:hover {
-    background: #1e2a1e;
-    border-color: #4ade80;
-    color: #4ade80;
-}
-QPushButton#danger_btn {
-    background: #2a1010;
-    color: #f87171;
-    border: 1px solid #4a2020;
-    border-radius: 9999px;
-    padding: 8px 16px;
-    font-family: 'Segoe UI';
+    font-weight: 500;
+}}
+QPushButton#copy_btn:hover {{
+    background: rgba(4,63,46,0.3);
+    border-color: #6ee7b7;
+    color: #6ee7b7;
+}}
+
+/* Danger: muted red */
+QPushButton#danger_btn {{
+    background: rgba(217,107,107,0.12);
+    color: {_ERROR};
+    border: 1px solid rgba(217,107,107,0.35);
+    border-radius: 4px;
+    padding: 10px 18px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 38px;
+}}
+QPushButton#danger_btn:hover {{
+    background: rgba(217,107,107,0.22);
+    border-color: {_ERROR};
+}}
+
+/* Wake: muted green */
+QPushButton#wake_btn {{
+    background: rgba(4,63,46,0.25);
+    color: #6ee7b7;
+    border: 1px solid rgba(110,231,183,0.3);
+    border-radius: 4px;
+    padding: 10px 18px;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 38px;
+}}
+QPushButton#wake_btn:hover {{
+    background: rgba(4,63,46,0.40);
+    border-color: #6ee7b7;
+}}
+
+/* ── Date pickers ── */
+QDateEdit {{
+    background: {_INPUT_BG};
+    color: {_MUTED};
+    border: 1px solid {_BORDER};
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-family: 'Segoe UI', sans-serif;
     font-size: 12px;
-    font-weight: 600;
-}
-QPushButton#danger_btn:hover {
-    background: #3a1515;
-    border-color: #f87171;
-    color: #ffffff;
-}
-QPushButton#danger_btn:pressed { background: #1a0a0a; }
-QPushButton#wake_btn {
-    background: #102a10;
-    color: #4ade80;
-    border: 1px solid #204a20;
-    border-radius: 9999px;
-    padding: 8px 16px;
-    font-family: 'Segoe UI';
-    font-size: 12px;
-    font-weight: 600;
-}
-QPushButton#wake_btn:hover {
-    background: #153a15;
-    border-color: #4ade80;
-    color: #ffffff;
-}
-QPushButton#wake_btn:pressed { background: #0a1a0a; }
-QDateEdit {
-    background: #1c1917;
-    color: #a8a29e;
-    border: 1px solid #2e2b28;
-    border-radius: 8px;
-    padding: 5px;
-    font-family: 'Segoe UI';
-    font-size: 12px;
-}
-QDateEdit:hover { border-color: #4a4540; }
-QCalendarWidget {
-    background: #1c1917;
-    color: #f5f4f2;
-}
-QCalendarWidget QAbstractItemView {
-    background: #1c1917;
-    color: #f5f4f2;
-    selection-background-color: #3d3935;
-}
+}}
+QDateEdit:hover {{ border-color: {_MUTED}; }}
+QCalendarWidget {{
+    background: #1a1a1a;
+    color: {_SECONDARY};
+}}
+QCalendarWidget QAbstractItemView {{
+    background: #1a1a1a;
+    color: {_SECONDARY};
+    selection-background-color: {_PRIMARY};
+}}
 """
 
 
+# ─── Stat Card ────────────────────────────────────────────────────────────────
 
 class StatCard(QWidget):
-    def __init__(self, label, value, accent=None):
+    """
+    A single stat tile: large serif number + Graphik overline label.
+    Styled per Mode Dark Editorial card spec.
+    """
+    def __init__(self, label: str, value: str, accent: str = _MUTED):
         super().__init__()
-        self.accent = accent or MUTED
-        self.setFixedHeight(92)
-        self.setCursor(Qt.CursorShape.ArrowCursor)
+        self.accent = accent
+        self.setFixedHeight(104)
+
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 18, 20, 16)
-        layout.setSpacing(5)
+        layout.setContentsMargins(20, 20, 20, 16)
+        layout.setSpacing(6)
 
         self.val_label = QLabel(str(value))
         self.val_label.setStyleSheet(f"""
-            font-family: 'Segoe UI';
-            font-size: 30px;
-            font-weight: 200;
-            color: #f5f4f2;
+            font-family: 'Times New Roman', serif;
+            font-size: 36px;
+            font-weight: 400;
+            color: {_SECONDARY};
             letter-spacing: -1px;
+            line-height: 43px;
         """)
-        self.lbl_label = QLabel(label)
+
+        self.lbl_label = QLabel(label.upper())
         self.lbl_label.setStyleSheet(f"""
-            font-family: 'Segoe UI';
+            font-family: 'Segoe UI', sans-serif;
             font-size: 10px;
             font-weight: 600;
-            color: {MUTED};
-            letter-spacing: 1.5px;
+            color: {_MUTED};
+            letter-spacing: 0.06em;
         """)
+
         layout.addWidget(self.val_label)
         layout.addWidget(self.lbl_label)
 
-        self._base_style = f"""
+        self.setStyleSheet(f"""
             StatCard {{
-                background: #1c1917;
-                border: 1px solid #2a2723;
-                border-radius: 14px;
+                background: {_CARD_BG};
+                border: 1px solid {_BORDER};
+                border-radius: 8px;
                 border-left: 3px solid {self.accent};
             }}
             StatCard:hover {{
-                background: #222019;
-                border: 1px solid #3d3935;
+                background: {_CARD_HOVER};
+                border: 1px solid {_MUTED};
                 border-left: 3px solid {self.accent};
             }}
-        """
-        self.setStyleSheet(self._base_style)
+        """)
 
-    def update_value(self, value):
+    def update_value(self, value: str):
         self.val_label.setText(str(value))
 
 
-
+# ─── Mode Badge ───────────────────────────────────────────────────────────────
 
 class ModeBadge(QLabel):
+    """High-contrast capsule badge for RAW / SF / POL."""
+    _LABELS = {"raw": "RAW", "semi_formal": "SF", "polished": "POL"}
+
     def __init__(self, mode: str):
         super().__init__()
-        labels = {"raw": "RAW", "semi_formal": "SF", "polished": "POL"}
-        fg, bg = MODE_COLORS.get(mode, ("#a8a29e", "#2a2723"))
-        self.setText(labels.get(mode, mode.upper()))
-        self.setFixedSize(38, 20)
+        fg, bg = _MODE_COLORS.get(mode, (_MUTED, "#1a1a1a"))
+        self.setText(self._LABELS.get(mode, mode.upper()))
+        self.setFixedSize(42, 22)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet(f"""
             QLabel {{
                 background: {bg};
                 color: {fg};
-                border: 1px solid {fg}44;
-                border-radius: 4px;
-                font-family: 'Segoe UI';
+                border: 1px solid {fg}55;
+                border-radius: 9999px;
+                font-family: 'Segoe UI', sans-serif;
                 font-size: 9px;
-                font-weight: 700;
-                letter-spacing: 1px;
+                font-weight: 600;
+                letter-spacing: 0.06em;
             }}
         """)
 
 
+# ─── Session Row ──────────────────────────────────────────────────────────────
+
 class SessionRow(QWidget):
+    """Expandable session entry — dark surface, ivory text, editorial spacing."""
+
     def __init__(self, session: dict):
         super().__init__()
         self.session = session
@@ -307,57 +362,56 @@ class SessionRow(QWidget):
         self._build(session)
 
     def _build(self, s: dict):
-        self.setStyleSheet("""
-            SessionRow {
-                background: #1c1917;
-                border: 1px solid #2a2723;
-                border-radius: 12px;
-            }
-            SessionRow:hover {
-                border: 1px solid #3d3935;
-                background: #221f1c;
-            }
+        self.setStyleSheet(f"""
+            SessionRow {{
+                background: {_CARD_BG};
+                border: 1px solid {_BORDER};
+                border-radius: 8px;
+            }}
+            SessionRow:hover {{
+                border: 1px solid {_MUTED};
+                background: {_CARD_HOVER};
+            }}
         """)
         self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(16, 12, 16, 12)
-        self.main_layout.setSpacing(8)
+        self.main_layout.setContentsMargins(16, 14, 16, 14)
+        self.main_layout.setSpacing(10)
 
-        # Header row
+        # ── Header row ──────────────────────────────────────────────────────
         header = QHBoxLayout()
         header.setSpacing(10)
 
-        # Timestamp
         ts_raw = str(s.get("created_at", ""))
         try:
-            # SQLite stores "YYYY-MM-DD HH:MM:SS"; fromisoformat needs "T" sep on Py<3.11
             ts = datetime.datetime.fromisoformat(ts_raw.replace(" ", "T"))
         except Exception:
             ts = None
         time_str = ts.strftime("%b %d  %H:%M") if ts else "—"
-        ts_lbl = QLabel(time_str)
-        ts_lbl.setStyleSheet("color: #78716c; font-size: 12px; font-family: 'Segoe UI';")
 
-        # Mode badge
+        ts_lbl = QLabel(time_str)
+        ts_lbl.setStyleSheet(
+            f"color: {_MUTED}; font-size: 12px; font-family: 'Segoe UI', sans-serif;"
+        )
+
         badge = ModeBadge(s.get("mode", "raw"))
 
-        # Type tag
         stype = s.get("session_type", "dictation")
         type_lbl = QLabel("⚡ PROMPT" if stype == "prompt" else "🎙 DICTATE")
         type_lbl.setStyleSheet(f"""
-            color: {'#f472b6' if stype == 'prompt' else MUTED_SOFT};
+            color: {'#f472b6' if stype == 'prompt' else _MUTED};
             font-size: 10px;
             font-weight: 600;
-            font-family: 'Segoe UI';
-            letter-spacing: 0.5px;
+            font-family: 'Segoe UI', sans-serif;
+            letter-spacing: 0.06em;
         """)
 
-        # Word count
         wc_lbl = QLabel(f"{s.get('word_count', 0)} words")
-        wc_lbl.setStyleSheet("color: #4a4540; font-size: 11px; font-family: 'Segoe UI';")
+        wc_lbl.setStyleSheet(
+            f"color: {_BORDER}; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+        )
 
-        # Expand arrow
         self.arrow = QLabel("›")
-        self.arrow.setStyleSheet("color: #4a4540; font-size: 16px;")
+        self.arrow.setStyleSheet(f"color: {_BORDER}; font-size: 18px;")
 
         header.addWidget(ts_lbl)
         header.addWidget(badge)
@@ -367,43 +421,49 @@ class SessionRow(QWidget):
         header.addWidget(self.arrow)
         self.main_layout.addLayout(header)
 
-        # Preview text
-        preview = str(s.get("final_text", ""))[:120]
-        if len(str(s.get("final_text", ""))) > 120:
-            preview += "…"
-        self.preview_lbl = QLabel(preview)
-        self.preview_lbl.setStyleSheet("color: #a8a29e; font-size: 12px; font-family: 'Segoe UI'; line-height: 1.5;")
+        # ── Preview ─────────────────────────────────────────────────────────
+        preview_text = str(s.get("final_text", ""))[:140]
+        if len(str(s.get("final_text", ""))) > 140:
+            preview_text += "…"
+        self.preview_lbl = QLabel(preview_text)
+        self.preview_lbl.setStyleSheet(
+            f"color: {_MUTED}; font-size: 13px; "
+            f"font-family: 'Times New Roman', serif; line-height: 1.5;"
+        )
         self.preview_lbl.setWordWrap(True)
         self.main_layout.addWidget(self.preview_lbl)
 
-        # Expanded text (hidden by default)
+        # ── Expanded full text ───────────────────────────────────────────────
         self.full_text = QTextEdit()
         self.full_text.setPlainText(str(s.get("final_text", "")))
         self.full_text.setReadOnly(True)
-        self.full_text.setMaximumHeight(160)
-        self.full_text.setStyleSheet("""
-            QTextEdit {
-                background: #111110;
-                color: #d6d3d1;
+        self.full_text.setMaximumHeight(180)
+        self.full_text.setStyleSheet(f"""
+            QTextEdit {{
+                background: #0a0a0a;
+                color: {_SECONDARY};
                 border: none;
-                border-radius: 8px;
-                padding: 10px;
-                font-family: 'Segoe UI';
-                font-size: 13px;
-            }
+                border-radius: 4px;
+                padding: 12px 16px;
+                font-family: 'Times New Roman', serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }}
         """)
         self.full_text.hide()
         self.main_layout.addWidget(self.full_text)
 
-        # Copy button row (shown when expanded)
+        # ── Copy row (expanded only) ─────────────────────────────────────────
         copy_row = QHBoxLayout()
         copy_row.setContentsMargins(0, 0, 0, 0)
         self.copy_btn = QPushButton("Copy text")
         self.copy_btn.setObjectName("copy_btn")
-        self.copy_btn.setFixedHeight(26)
+        self.copy_btn.setFixedHeight(30)
         self.copy_btn.clicked.connect(self._copy_text)
         self.copy_status = QLabel("")
-        self.copy_status.setStyleSheet("color: #4ade80; font-size: 11px; font-family: 'Segoe UI';")
+        self.copy_status.setStyleSheet(
+            f"color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+        )
         copy_row.addWidget(self.copy_btn)
         copy_row.addWidget(self.copy_status)
         copy_row.addStretch()
@@ -413,7 +473,6 @@ class SessionRow(QWidget):
         self.copy_row_widget.hide()
         self.main_layout.addWidget(self.copy_row_widget)
 
-        # Click to expand
         self.mousePressEvent = self._toggle_expand
 
     def _copy_text(self):
@@ -427,9 +486,10 @@ class SessionRow(QWidget):
         self.full_text.setVisible(self.expanded)
         self.copy_row_widget.setVisible(self.expanded)
         self.preview_lbl.setVisible(not self.expanded)
-        self.arrow.setText("\u2304" if self.expanded else "\u203a")   # ⌄ / ›
-        self.setStyleSheet(self.styleSheet())
+        self.arrow.setText("⌄" if self.expanded else "›")
 
+
+# ─── Dashboard Window ─────────────────────────────────────────────────────────
 
 class DashboardWindow(QMainWindow):
     def __init__(self, db_ref=None):
@@ -438,142 +498,170 @@ class DashboardWindow(QMainWindow):
         self.config = Config()
         self.db = db_ref
         self._sessions = []
-        self._session_widgets = []
-        self.setWindowTitle("Mike - Dashboard")
-        self.setMinimumSize(860, 620)
-        self.resize(1000, 700)
+        self._refresh_timer = None
+        self.setWindowTitle("Mike — Dashboard")
+        self.setMinimumSize(900, 640)
+        self.resize(1060, 720)
         self.setStyleSheet(QSS_MAIN)
-        # Set mic icon instead of Python default
+
         _ico = asset_path("mike.ico")
         if _ico.exists():
             self.setWindowIcon(QIcon(str(_ico)))
+
         self._build_ui()
         self._load_data()
         self._start_refresh_timer()
+
+    def closeEvent(self, event):
+        """Cancel refresh timer on close to prevent ghost callbacks."""
+        if self._refresh_timer is not None:
+            self._refresh_timer.stop()
+            self._refresh_timer = None
+        super().closeEvent(event)
 
     # ─── UI Build ─────────────────────────────────────────────────────────────
 
     def _build_ui(self):
         central = QWidget()
         central.setObjectName("root")
-        central.setStyleSheet("background: #111110;")
+        central.setStyleSheet(f"background: {_TERTIARY};")
         self.setCentralWidget(central)
         root_layout = QHBoxLayout(central)
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
 
-        # Sidebar
-        sidebar = self._build_sidebar()
-        root_layout.addWidget(sidebar)
+        root_layout.addWidget(self._build_sidebar())
+        root_layout.addWidget(self._build_main(), stretch=1)
 
-        # Main content area
-        main_area = self._build_main()
-        root_layout.addWidget(main_area, stretch=1)
+    # ── Sidebar ───────────────────────────────────────────────────────────────
 
     def _build_sidebar(self):
         sidebar = QWidget()
-        sidebar.setFixedWidth(220)
-        sidebar.setStyleSheet("background: #0c0a09; border-right: 1px solid #1c1917;")
+        sidebar.setFixedWidth(240)
+        sidebar.setStyleSheet(
+            f"background: {_SIDEBAR_BG}; border-right: 1px solid {_BORDER};"
+        )
         layout = QVBoxLayout(sidebar)
-        layout.setContentsMargins(20, 28, 20, 28)
-        layout.setSpacing(4)
+        layout.setContentsMargins(24, 32, 24, 28)
+        layout.setSpacing(2)
 
-        # Logo / brand
+        # Brand
         logo = QLabel("Mike")
-        logo.setStyleSheet("""
-            font-family: 'Georgia', serif;
-            font-size: 22px;
-            font-weight: 300;
-            color: #f5f4f2;
-            letter-spacing: -0.3px;
-            margin-bottom: 4px;
+        logo.setStyleSheet(f"""
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 28px;
+            font-weight: 400;
+            color: {_SECONDARY};
+            letter-spacing: -0.5px;
         """)
         sub = QLabel("Voice Dictation")
-        sub.setStyleSheet("color: #4a4540; font-size: 11px; font-family: 'Segoe UI'; margin-bottom: 28px;")
+        sub.setStyleSheet(
+            f"color: {_MUTED}; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+            f" font-weight: 500; letter-spacing: 0.04em; margin-bottom: 24px;"
+        )
         layout.addWidget(logo)
         layout.addWidget(sub)
 
-        # Nav items — emoji icons for clarity
+        # Divider
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.HLine)
+        divider.setStyleSheet(f"color: {_BORDER}; margin: 8px 0 16px 0;")
+        layout.addWidget(divider)
+
+        # Nav items
         self._nav_btns = {}
         nav_items = [
-            ("🏠", "Overview",  "overview"),
-            ("📋", "Sessions",  "sessions"),
-            ("⚙️", "Settings",  "settings"),
+            ("Overview",  "overview"),
+            ("Sessions",  "sessions"),
+            ("Settings",  "settings"),
         ]
-        for icon, label, key in nav_items:
-            btn = self._nav_button(icon, label, key)
+        for label, key in nav_items:
+            btn = self._nav_button(label, key)
             layout.addWidget(btn)
 
         layout.addStretch()
 
-        # ─── Mic Controls (kill switch + wake) ───────────────────────────
+        # ── Mic Controls ──────────────────────────────────────────────────────
         mic_label = QLabel("MIC CONTROLS")
-        mic_label.setStyleSheet("color: #3d3935; font-size: 9px; font-weight: 600; "
-                                "letter-spacing: 1.2px; font-family: 'Segoe UI'; "
-                                "margin-bottom: 4px;")
+        mic_label.setStyleSheet(
+            f"color: {_BORDER}; font-size: 9px; font-weight: 600; "
+            f"letter-spacing: 0.1em; font-family: 'Segoe UI', sans-serif; "
+            f"margin-bottom: 8px; margin-top: 4px;"
+        )
         layout.addWidget(mic_label)
 
         kill_btn = QPushButton("⏹  Kill Mike")
         kill_btn.setObjectName("danger_btn")
-        kill_btn.setFixedHeight(34)
-        kill_btn.setToolTip("Kill the Mike background app completely (sends KILL_MIC signal)")
+        kill_btn.setToolTip("Force-stop Mike completely")
         kill_btn.clicked.connect(self._kill_mic)
         layout.addWidget(kill_btn)
 
+        layout.addSpacing(6)
+
         wake_btn = QPushButton("▶  Wake Mike")
         wake_btn.setObjectName("wake_btn")
-        wake_btn.setFixedHeight(34)
         wake_btn.setToolTip("Reset Mike if glitched, or relaunch if not running")
         wake_btn.clicked.connect(self._wake_mike)
         layout.addWidget(wake_btn)
 
-        # Status dot
+        layout.addSpacing(12)
+
         self.status_lbl = QLabel("● Active")
-        self.status_lbl.setStyleSheet("color: #4ade80; font-size: 11px; "
-                                      "font-family: 'Segoe UI'; margin-top: 8px;")
+        self.status_lbl.setStyleSheet(
+            f"color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+        )
         layout.addWidget(self.status_lbl)
 
         return sidebar
 
-    def _nav_button(self, icon, label, key):
-        btn = QPushButton(f"  {icon}  {label}")
+    def _nav_button(self, label: str, key: str):
+        btn = QPushButton(label)
         btn.setCheckable(True)
         btn.setChecked(key == "overview")
-        btn.setStyleSheet("""
-            QPushButton {
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setStyleSheet(f"""
+            QPushButton {{
                 background: transparent;
-                color: #78716c;
+                color: {_MUTED};
                 border: none;
-                border-radius: 8px;
-                padding: 10px 12px;
+                border-left: 2px solid transparent;
+                border-radius: 0px;
+                padding: 11px 16px;
                 text-align: left;
-                font-family: 'Segoe UI';
+                font-family: 'Segoe UI', sans-serif;
                 font-size: 13px;
-            }
-            QPushButton:hover { background: #1c1917; color: #d6d3d1; }
-            QPushButton:checked { background: #1c1917; color: #f5f4f2; }
+                font-weight: 500;
+            }}
+            QPushButton:hover {{
+                background: rgba(238,242,227,0.04);
+                color: {_SECONDARY};
+            }}
+            QPushButton:checked {{
+                background: rgba(4,63,46,0.35);
+                color: {_SECONDARY};
+                border-left: 2px solid #6ee7b7;
+            }}
         """)
-        btn.clicked.connect(lambda checked, k=key: self._nav_to(k))
+        btn.clicked.connect(lambda _checked, k=key: self._nav_to(k))
         self._nav_btns[key] = btn
         return btn
 
-    def _nav_to(self, key):
+    def _nav_to(self, key: str):
         for k, b in self._nav_btns.items():
             b.setChecked(k == key)
         self.stack.setCurrentIndex({"overview": 0, "sessions": 1, "settings": 2}.get(key, 0))
 
+    # ── Main Content ──────────────────────────────────────────────────────────
+
     def _build_main(self):
         container = QWidget()
-        container.setStyleSheet("background: #111110;")
+        container.setStyleSheet(f"background: {_TERTIARY};")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
-        # Top bar
-        topbar = self._build_topbar()
-        layout.addWidget(topbar)
+        layout.addWidget(self._build_topbar())
 
-        # Stacked pages
         self.stack = QStackedWidget()
         self.stack.addWidget(self._build_overview_page())   # 0
         self.stack.addWidget(self._build_sessions_page())   # 1
@@ -585,62 +673,84 @@ class DashboardWindow(QMainWindow):
     def _build_topbar(self):
         bar = QWidget()
         bar.setFixedHeight(56)
-        bar.setStyleSheet("background: #111110; border-bottom: 1px solid #1c1917;")
+        bar.setStyleSheet(
+            f"background: {_TERTIARY}; border-bottom: 1px solid {_BORDER};"
+        )
         layout = QHBoxLayout(bar)
-        layout.setContentsMargins(28, 0, 28, 0)
+        layout.setContentsMargins(30, 0, 30, 0)
 
         self.search_box = QLineEdit()
         self.search_box.setPlaceholderText("Search sessions…")
-        self.search_box.setFixedWidth(280)
+        self.search_box.setFixedWidth(300)
+        self.search_box.setFixedHeight(36)
+        self.search_box.setStyleSheet(f"""
+            QLineEdit {{
+                background: {_INPUT_BG};
+                color: {_SECONDARY};
+                border: 1px solid {_BORDER};
+                border-radius: 4px;
+                padding: 8px 14px;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 13px;
+            }}
+            QLineEdit:focus {{
+                border: 1px solid {_MUTED};
+            }}
+        """)
         self.search_box.textChanged.connect(self._on_search)
         layout.addWidget(self.search_box)
         layout.addStretch()
 
         export_btn = QPushButton("Export")
         export_btn.setObjectName("ghost_btn")
+        export_btn.setFixedHeight(36)
         export_btn.clicked.connect(self._export_sessions)
         layout.addWidget(export_btn)
 
         return bar
 
+    # ── Overview Page ─────────────────────────────────────────────────────────
+
     def _build_overview_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
 
-        # Heading
         heading = QLabel("Overview")
-        heading.setStyleSheet("""
-            font-family: 'Georgia', serif;
-            font-size: 28px;
-            font-weight: 300;
-            color: #f5f4f2;
-            letter-spacing: -0.4px;
+        heading.setStyleSheet(f"""
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 36px;
+            font-weight: 400;
+            color: {_SECONDARY};
+            letter-spacing: -0.5px;
+            line-height: 43px;
         """)
         layout.addWidget(heading)
 
-        # Stats grid (2×2)
-        self.stat_total   = StatCard("ALL TIME WORDS", "—", GRAD_MINT)
-        self.stat_today   = StatCard("TODAY", "—", GRAD_PEACH)
-        self.stat_week    = StatCard("THIS WEEK", "—", GRAD_SKY)
-        self.stat_saved   = StatCard("TIME SAVED (MIN)", "—", GRAD_LAVEND)
+        # Stat cards — 4 in a row
+        stats_row = QHBoxLayout()
+        stats_row.setSpacing(12)
+        self.stat_total = StatCard("All Time Words",  "—", "#6ee7b7")
+        self.stat_today = StatCard("Today",           "—", "#93c5fd")
+        self.stat_week  = StatCard("This Week",       "—", "#f9a8d4")
+        self.stat_saved = StatCard("Time Saved (min)","—", "#fcd34d")
+        stats_row.addWidget(self.stat_total)
+        stats_row.addWidget(self.stat_today)
+        stats_row.addWidget(self.stat_week)
+        stats_row.addWidget(self.stat_saved)
+        layout.addLayout(stats_row)
 
-        row1 = QHBoxLayout()
-        row1.setSpacing(12)
-        row1.addWidget(self.stat_total)
-        row1.addWidget(self.stat_today)
-        layout.addLayout(row1)
-
-        row2 = QHBoxLayout()
-        row2.setSpacing(12)
-        row2.addWidget(self.stat_week)
-        row2.addWidget(self.stat_saved)
-        layout.addLayout(row2)
-
-        # Recent sessions (last 5)
-        recent_label = QLabel("Recent Sessions")
-        recent_label.setStyleSheet("color: #78716c; font-size: 11px; font-weight: 600; letter-spacing: 1.2px; font-family: 'Segoe UI'; text-transform: uppercase;")
+        # Section label
+        recent_label = QLabel("RECENT SESSIONS")
+        recent_label.setStyleSheet(f"""
+            color: {_MUTED};
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            font-family: 'Segoe UI', sans-serif;
+            margin-top: 10px;
+        """)
         layout.addWidget(recent_label)
 
         self.recent_scroll = QScrollArea()
@@ -649,7 +759,7 @@ class DashboardWindow(QMainWindow):
         self.recent_container = QWidget()
         self.recent_layout = QVBoxLayout(self.recent_container)
         self.recent_layout.setSpacing(8)
-        self.recent_layout.setContentsMargins(0, 0, 0, 0)
+        self.recent_layout.setContentsMargins(0, 0, 4, 0)
         self.recent_layout.addStretch()
         self.recent_scroll.setWidget(self.recent_container)
         self.recent_scroll.setStyleSheet("background: transparent;")
@@ -657,20 +767,35 @@ class DashboardWindow(QMainWindow):
 
         return page
 
+    # ── Sessions Page ─────────────────────────────────────────────────────────
+
     def _build_sessions_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(16)
 
-        # Header + filters
         heading = QLabel("Session History")
-        heading.setStyleSheet("font-family: 'Georgia', serif; font-size: 28px; font-weight: 300; color: #f5f4f2; letter-spacing: -0.4px;")
+        heading.setStyleSheet(f"""
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 36px;
+            font-weight: 400;
+            color: {_SECONDARY};
+            letter-spacing: -0.5px;
+        """)
         layout.addWidget(heading)
 
         # Filter bar
         filter_bar = QHBoxLayout()
         filter_bar.setSpacing(10)
+
+        def _lbl(text: str) -> QLabel:
+            l = QLabel(text)
+            l.setStyleSheet(
+                f"color: {_MUTED}; font-size: 12px; font-weight: 500;"
+                f" font-family: 'Segoe UI', sans-serif;"
+            )
+            return l
 
         self.mode_filter = QComboBox()
         self.mode_filter.addItems(["All Modes", "Raw", "Semi-Formal", "Polished"])
@@ -680,94 +805,107 @@ class DashboardWindow(QMainWindow):
         self.type_filter.addItems(["All Types", "Dictation", "Prompt"])
         self.type_filter.currentIndexChanged.connect(self._apply_filters)
 
+        _date_style = (
+            f"background: {_INPUT_BG}; color: {_MUTED}; "
+            f"border: 1px solid {_BORDER}; border-radius: 4px; padding: 6px 10px;"
+        )
         self.date_from = QDateEdit()
         self.date_from.setDate(QDate.currentDate().addDays(-30))
         self.date_from.setCalendarPopup(True)
-        self.date_from.setStyleSheet("background: #1c1917; color: #a8a29e; border: 1px solid #2e2b28; border-radius: 8px; padding: 5px;")
+        self.date_from.setStyleSheet(_date_style)
         self.date_from.dateChanged.connect(self._apply_filters)
 
         self.date_to = QDateEdit()
         self.date_to.setDate(QDate.currentDate())
         self.date_to.setCalendarPopup(True)
-        self.date_to.setStyleSheet("background: #1c1917; color: #a8a29e; border: 1px solid #2e2b28; border-radius: 8px; padding: 5px;")
+        self.date_to.setStyleSheet(_date_style)
         self.date_to.dateChanged.connect(self._apply_filters)
 
-        lbl_mode = QLabel("Mode:")
-        lbl_mode.setStyleSheet("color: #d6d3d1; font-size: 12px; font-family: 'Segoe UI';")
-        lbl_type = QLabel("Type:")
-        lbl_type.setStyleSheet("color: #d6d3d1; font-size: 12px; font-family: 'Segoe UI';")
-        lbl_from = QLabel("From:")
-        lbl_from.setStyleSheet("color: #d6d3d1; font-size: 12px; font-family: 'Segoe UI';")
-        lbl_to = QLabel("To:")
-        lbl_to.setStyleSheet("color: #d6d3d1; font-size: 12px; font-family: 'Segoe UI';")
-
-        filter_bar.addWidget(lbl_mode)
+        filter_bar.addWidget(_lbl("Mode:"))
         filter_bar.addWidget(self.mode_filter)
-        filter_bar.addWidget(lbl_type)
+        filter_bar.addSpacing(8)
+        filter_bar.addWidget(_lbl("Type:"))
         filter_bar.addWidget(self.type_filter)
-        filter_bar.addWidget(lbl_from)
+        filter_bar.addSpacing(8)
+        filter_bar.addWidget(_lbl("From:"))
         filter_bar.addWidget(self.date_from)
-        filter_bar.addWidget(lbl_to)
+        filter_bar.addWidget(_lbl("To:"))
         filter_bar.addWidget(self.date_to)
         filter_bar.addStretch()
         layout.addLayout(filter_bar)
 
-        # Session list
         self.session_scroll = QScrollArea()
         self.session_scroll.setWidgetResizable(True)
         self.session_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.sessions_container = QWidget()
         self.sessions_layout = QVBoxLayout(self.sessions_container)
         self.sessions_layout.setSpacing(8)
-        self.sessions_layout.setContentsMargins(0, 0, 8, 0)
+        self.sessions_layout.setContentsMargins(0, 0, 4, 0)
         self.sessions_layout.addStretch()
         self.session_scroll.setWidget(self.sessions_container)
         layout.addWidget(self.session_scroll, stretch=1)
 
         return page
 
+    # ── Settings Page ─────────────────────────────────────────────────────────
+
     def _build_settings_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setContentsMargins(28, 28, 28, 28)
+        layout.setContentsMargins(30, 30, 30, 30)
         layout.setSpacing(20)
 
         heading = QLabel("Settings")
-        heading.setStyleSheet("font-family: 'Georgia', serif; font-size: 28px; font-weight: 300; color: #f5f4f2; letter-spacing: -0.4px;")
+        heading.setStyleSheet(f"""
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 36px;
+            font-weight: 400;
+            color: {_SECONDARY};
+            letter-spacing: -0.5px;
+        """)
         layout.addWidget(heading)
 
-        # API Key card
-        api_card = QWidget()
-        api_card.setStyleSheet("background: #1c1917; border: 1px solid #2e2b28; border-radius: 14px;")
+        # ── API Key card ──────────────────────────────────────────────────────
+        api_card = self._settings_card()
         api_layout = QVBoxLayout(api_card)
-        api_layout.setContentsMargins(20, 20, 20, 20)
-        api_layout.setSpacing(10)
+        api_layout.setContentsMargins(24, 24, 24, 24)
+        api_layout.setSpacing(12)
 
         api_title = QLabel("Groq API Key")
-        api_title.setStyleSheet("color: #f5f4f2; font-size: 14px; font-weight: 600; font-family: 'Segoe UI';")
-        api_sub = QLabel("Get your free key at console.groq.com — Whisper + LLaMA, no credit card needed.")
-        api_sub.setStyleSheet("color: #78716c; font-size: 12px; font-family: 'Segoe UI';")
+        api_title.setStyleSheet(f"""
+            color: {_SECONDARY};
+            font-size: 16px;
+            font-weight: 400;
+            font-family: 'Times New Roman', serif;
+        """)
+        api_sub = QLabel(
+            "Get your free key at console.groq.com — Whisper + LLaMA, no credit card needed."
+        )
+        api_sub.setStyleSheet(
+            f"color: {_MUTED}; font-size: 13px; font-family: 'Segoe UI', sans-serif;"
+        )
         api_sub.setWordWrap(True)
 
         key_row = QHBoxLayout()
+        key_row.setSpacing(10)
         self.api_key_input = QLineEdit()
         self.api_key_input.setPlaceholderText("gsk_…")
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
+        self.api_key_input.setFixedHeight(44)
         self.api_key_input.setText(self.config.get("groq_api_key", ""))
 
         show_btn = QPushButton("Show")
         show_btn.setObjectName("ghost_btn")
-        show_btn.setFixedWidth(60)
-        show_btn.clicked.connect(lambda: self.api_key_input.setEchoMode(
-            QLineEdit.EchoMode.Normal if self.api_key_input.echoMode() == QLineEdit.EchoMode.Password
-            else QLineEdit.EchoMode.Password
-        ))
+        show_btn.setFixedWidth(70)
+        show_btn.setFixedHeight(44)
+        show_btn.clicked.connect(self._toggle_key_visibility)
 
         save_btn = QPushButton("Save Key")
-        save_btn.setObjectName("pill_btn")
+        save_btn.setObjectName("primary_btn")
+        save_btn.setFixedHeight(44)
         save_btn.clicked.connect(self._save_api_key)
 
-        key_row.addWidget(self.api_key_input)
+        key_row.addWidget(self.api_key_input, stretch=1)
         key_row.addWidget(show_btn)
         key_row.addWidget(save_btn)
 
@@ -776,29 +914,41 @@ class DashboardWindow(QMainWindow):
         api_layout.addLayout(key_row)
         layout.addWidget(api_card)
 
-        # Inject method card
-        inject_card = QWidget()
-        inject_card.setStyleSheet("background: #1c1917; border: 1px solid #2e2b28; border-radius: 14px;")
+        # ── Inject method card ────────────────────────────────────────────────
+        inject_card = self._settings_card()
         inj_layout = QVBoxLayout(inject_card)
-        inj_layout.setContentsMargins(20, 20, 20, 20)
-        inj_layout.setSpacing(10)
+        inj_layout.setContentsMargins(24, 24, 24, 24)
+        inj_layout.setSpacing(12)
 
         inj_title = QLabel("Text Injection Method")
-        inj_title.setStyleSheet("color: #f5f4f2; font-size: 14px; font-weight: 600; font-family: 'Segoe UI';")
-        inj_sub = QLabel("Clipboard (fast, recommended) or Type (slower, more compatible with all apps).")
-        inj_sub.setStyleSheet("color: #78716c; font-size: 12px; font-family: 'Segoe UI';")
+        inj_title.setStyleSheet(f"""
+            color: {_SECONDARY};
+            font-size: 16px;
+            font-weight: 400;
+            font-family: 'Times New Roman', serif;
+        """)
+        inj_sub = QLabel(
+            "Clipboard (fast, recommended) or Type (slower, more compatible with all apps)."
+        )
+        inj_sub.setStyleSheet(
+            f"color: {_MUTED}; font-size: 13px; font-family: 'Segoe UI', sans-serif;"
+        )
         inj_sub.setWordWrap(True)
 
         self.inject_combo = QComboBox()
         self.inject_combo.addItems(["Clipboard (Ctrl+V)", "Character-by-character"])
         method = self.config.get("inject_method", "clipboard")
         self.inject_combo.setCurrentIndex(0 if method == "clipboard" else 1)
+        self.inject_combo.setFixedHeight(44)
+
         inj_save = QPushButton("Save")
-        inj_save.setObjectName("pill_btn")
+        inj_save.setObjectName("primary_btn")
+        inj_save.setFixedHeight(44)
         inj_save.clicked.connect(self._save_inject_method)
 
         inj_row = QHBoxLayout()
-        inj_row.addWidget(self.inject_combo)
+        inj_row.setSpacing(10)
+        inj_row.addWidget(self.inject_combo, stretch=1)
         inj_row.addWidget(inj_save)
 
         inj_layout.addWidget(inj_title)
@@ -808,6 +958,18 @@ class DashboardWindow(QMainWindow):
 
         layout.addStretch()
         return page
+
+    def _settings_card(self) -> QWidget:
+        """Return a styled settings card container."""
+        card = QWidget()
+        card.setStyleSheet(f"""
+            QWidget {{
+                background: {_CARD_BG};
+                border: 1px solid {_BORDER};
+                border-radius: 8px;
+            }}
+        """)
+        return card
 
     # ─── Data Loading ─────────────────────────────────────────────────────────
 
@@ -825,24 +987,25 @@ class DashboardWindow(QMainWindow):
             logger.error(f"[Dashboard] DB error: {e}")
 
     def _load_mock_data(self):
-        """Show placeholder data when no DB connected."""
-        self.stat_total.update_value("0")
-        self.stat_today.update_value("0")
-        self.stat_week.update_value("0")
-        self.stat_saved.update_value("0")
+        for card in (self.stat_total, self.stat_today, self.stat_week, self.stat_saved):
+            card.update_value("0")
 
     def _update_stats(self):
         if not self._sessions:
             return
-        today = datetime.date.today()
+        today    = datetime.date.today()
         week_ago = today - datetime.timedelta(days=7)
 
         total_words = sum(s.get("word_count", 0) for s in self._sessions)
-        today_words = sum(s.get("word_count", 0) for s in self._sessions
-                         if _session_date(s) == today)
-        week_words  = sum(s.get("word_count", 0) for s in self._sessions
-                         if _session_date(s) >= week_ago)
-        time_saved  = round(total_words / 45)
+        today_words = sum(
+            s.get("word_count", 0) for s in self._sessions
+            if _session_date(s) == today
+        )
+        week_words = sum(
+            s.get("word_count", 0) for s in self._sessions
+            if _session_date(s) >= week_ago
+        )
+        time_saved = round(total_words / 45)
 
         self.stat_total.update_value(f"{total_words:,}")
         self.stat_today.update_value(f"{today_words:,}")
@@ -850,12 +1013,10 @@ class DashboardWindow(QMainWindow):
         self.stat_saved.update_value(f"{time_saved}")
 
     def _refresh_session_list(self, sessions):
-        # Clear old widgets
         while self.sessions_layout.count() > 1:
             item = self.sessions_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-
         for s in sessions:
             row = SessionRow(s)
             self.sessions_layout.insertWidget(self.sessions_layout.count() - 1, row)
@@ -865,31 +1026,30 @@ class DashboardWindow(QMainWindow):
             item = self.recent_layout.takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
-
         for s in sessions:
             row = SessionRow(s)
             self.recent_layout.insertWidget(self.recent_layout.count() - 1, row)
 
     def _start_refresh_timer(self):
-        self._refresh_timer = QTimer()
-        self._refresh_timer.setInterval(10_000)  # refresh every 10s
+        self._refresh_timer = QTimer(self)
+        self._refresh_timer.setInterval(10_000)
         self._refresh_timer.timeout.connect(self._load_data)
         self._refresh_timer.start()
 
     # ─── Filtering & Search ───────────────────────────────────────────────────
 
-    def _on_search(self, text: str):
+    def _on_search(self, _text: str):
         self._apply_filters()
 
     def _apply_filters(self):
-        search = self.search_box.text().lower()
-        mode_idx = self.mode_filter.currentIndex()
-        type_idx = self.type_filter.currentIndex()
+        search    = self.search_box.text().lower()
+        mode_idx  = self.mode_filter.currentIndex()
+        type_idx  = self.type_filter.currentIndex()
         date_from = self.date_from.date().toPyDate()
         date_to   = self.date_to.date().toPyDate()
 
-        mode_map = {0: None, 1: "raw", 2: "semi_formal", 3: "polished"}
-        type_map = {0: None, 1: "dictation", 2: "prompt"}
+        mode_map  = {0: None, 1: "raw", 2: "semi_formal", 3: "polished"}
+        type_map  = {0: None, 1: "dictation", 2: "prompt"}
         mode_filter = mode_map.get(mode_idx)
         type_filter = type_map.get(type_idx)
 
@@ -911,43 +1071,58 @@ class DashboardWindow(QMainWindow):
     # ─── Export ───────────────────────────────────────────────────────────────
 
     def _export_sessions(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Export Sessions", "", "Text Files (*.txt)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Export Sessions", "", "Text Files (*.txt);;All Files (*)"
+        )
         if not path:
             return
         with open(path, "w", encoding="utf-8") as f:
             for s in self._sessions:
-                f.write(f"--- {s.get('created_at')} | {s.get('mode')} | {s.get('word_count',0)} words ---\n")
+                f.write(
+                    f"--- {s.get('created_at')} | {s.get('mode')} | "
+                    f"{s.get('word_count', 0)} words ---\n"
+                )
                 f.write(str(s.get("final_text", "")) + "\n\n")
 
     # ─── Settings Actions ─────────────────────────────────────────────────────
 
-    # Base QLineEdit style (used for clean replacement, not accumulation)
-    _KEY_INPUT_BASE = (
-        "background: #1c1917; color: #f5f4f2; border-radius: 10px; "
-        "padding: 8px 14px; font-family: 'Segoe UI'; font-size: 13px;"
+    _KEY_INPUT_NEUTRAL = (
+        f"background: {_INPUT_BG}; color: {_SECONDARY}; "
+        f"border: 1px solid {_BORDER}; border-radius: 4px; "
+        f"padding: 14px 16px; font-family: 'Times New Roman', serif; font-size: 14px;"
     )
+
+    def _toggle_key_visibility(self):
+        is_pw = self.api_key_input.echoMode() == QLineEdit.EchoMode.Password
+        self.api_key_input.setEchoMode(
+            QLineEdit.EchoMode.Normal if is_pw else QLineEdit.EchoMode.Password
+        )
 
     def _save_api_key(self):
         key = self.api_key_input.text().strip()
-        if not key.startswith("gsk_"):
-            # Replace (not append) stylesheet so border doesn't accumulate
-            self.api_key_input.setStyleSheet(self._KEY_INPUT_BASE + " border: 1px solid #f87171;")
+        if not key.startswith("gsk_") or len(key) < 20:
+            self.api_key_input.setStyleSheet(
+                self._KEY_INPUT_NEUTRAL + f" border: 1px solid {_ERROR};"
+            )
             return
         self.config.set("groq_api_key", key)
-        self.api_key_input.setStyleSheet(self._KEY_INPUT_BASE + " border: 1px solid #4ade80;")
-        # Reset to neutral after 2 s
-        QTimer.singleShot(2000, lambda: self.api_key_input.setStyleSheet(self._KEY_INPUT_BASE + " border: 1px solid #2e2b28;"))
+        self.api_key_input.setStyleSheet(
+            self._KEY_INPUT_NEUTRAL + " border: 1px solid #6ee7b7;"
+        )
+        QTimer.singleShot(2000, self._reset_key_input_style)
+
+    def _reset_key_input_style(self):
+        self.api_key_input.setStyleSheet(self._KEY_INPUT_NEUTRAL)
 
     def _save_inject_method(self):
         method = "clipboard" if self.inject_combo.currentIndex() == 0 else "type"
         self.config.set("inject_method", method)
 
-    # ─── Mic Controls ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+    # ─── Mic Controls ─────────────────────────────────────────────────────────
 
-    _MIKE_PORT = 44556  # Must match main.py PORT
+    _MIKE_PORT = 44556
 
     def _send_mic_signal(self, signal: bytes) -> bool:
-        """Send UDP signal to the running Mike main process."""
         try:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.settimeout(0.5)
@@ -957,39 +1132,33 @@ class DashboardWindow(QMainWindow):
         except Exception:
             return False
 
-    def _set_status(self, text: str, color: str = "#4ade80", reset_ms: int = 3000):
+    def _set_status(self, text: str, color: str = "#6ee7b7", reset_ms: int = 3000):
         self.status_lbl.setText(text)
         self.status_lbl.setStyleSheet(
-            f"color: {color}; font-size: 11px; font-family: 'Segoe UI'; margin-top: 8px;"
+            f"color: {color}; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
         )
         if reset_ms > 0:
-            # Use a direct lambda that sets the label without scheduling another reset
-            QTimer.singleShot(reset_ms, lambda: (
-                self.status_lbl.setText("● Active"),
-                self.status_lbl.setStyleSheet(
-                    "color: #4ade80; font-size: 11px; font-family: 'Segoe UI'; margin-top: 8px;"
-                )
-            ))
+            QTimer.singleShot(reset_ms, self._reset_status)
+
+    def _reset_status(self):
+        self.status_lbl.setText("● Active")
+        self.status_lbl.setStyleSheet(
+            "color: #6ee7b7; font-size: 11px; font-family: 'Segoe UI', sans-serif;"
+        )
 
     def _kill_mic(self):
-        """Force-stop mic: sends KILL_MIC signal to main Mike process."""
         sent = self._send_mic_signal(b"KILL_MIC")
         if sent:
-            self._set_status("⏹ Mike killed", "#f87171")
+            self._set_status("⏹ Mike killed", _ERROR)
         else:
-            self._set_status("⚠ Mike not running", "#fbbf24")
+            self._set_status("⚠ Mike not running", "#fcd34d")
 
     def _wake_mike(self):
-        """Reset/restart Mike: sends WAKE_MIC, or relaunches if process is dead."""
-        # 1. Try to probe if Mike is running (attempt to bind its port)
         probe = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         mike_alive = False
         try:
             probe.bind(("127.0.0.1", self._MIKE_PORT))
-            # Bind succeeded → Mike is NOT running
-            mike_alive = False
         except OSError:
-            # Port taken → Mike is running
             mike_alive = True
         finally:
             try:
@@ -998,11 +1167,9 @@ class DashboardWindow(QMainWindow):
                 pass
 
         if mike_alive:
-            # Mike is alive but possibly glitched — send wake signal
             self._send_mic_signal(b"WAKE_MIC")
-            self._set_status("▶ Wake signal sent", "#4ade80")
+            self._set_status("▶ Wake signal sent", "#6ee7b7")
         else:
-            # Mike is dead — relaunch exe from install path
             mike_exe = (
                 pathlib.Path(os.environ.get("LOCALAPPDATA", ""))
                 / "Programs" / "Mike" / "Mike.exe"
@@ -1011,23 +1178,27 @@ class DashboardWindow(QMainWindow):
                 try:
                     env = os.environ.copy()
                     for k in list(env.keys()):
-                        if k.startswith("_PYI") or k.startswith("_MEI") or k in ("TCL_LIBRARY", "TK_LIBRARY"):
+                        if k.startswith("_PYI") or k.startswith("_MEI") or k in (
+                            "TCL_LIBRARY", "TK_LIBRARY"
+                        ):
                             env.pop(k, None)
                     subprocess.Popen(
                         [str(mike_exe), "--startup"],
                         env=env,
-                        creationflags=0x08000000,  # CREATE_NO_WINDOW
+                        creationflags=0x08000000,
                     )
-                    self._set_status("▶ Launching Mike…", "#4ade80")
+                    self._set_status("▶ Launching Mike…", "#6ee7b7")
                 except Exception as e:
-                    self._set_status(f"⚠ Launch failed: {e}", "#f87171")
+                    self._set_status(f"⚠ Launch failed: {e}", _ERROR)
             else:
-                self._set_status("⚠ Mike.exe not found", "#f87171")
+                self._set_status("⚠ Mike.exe not found", _ERROR)
 
     def refresh(self):
-        """Call to reload data from DB."""
+        """Reload data from DB."""
         self._load_data()
 
+
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _session_date(s: dict) -> datetime.date:
     try:
@@ -1036,6 +1207,8 @@ def _session_date(s: dict) -> datetime.date:
     except Exception:
         return datetime.date.today()
 
+
+# ─── Launch Helpers ───────────────────────────────────────────────────────────
 
 def launch_dashboard(db_ref=None):
     """Launch or show the dashboard window. Must be called from the Qt main thread."""
@@ -1067,14 +1240,11 @@ if __name__ == "__main__":
     except Exception:
         pass
 
-    # Ensure project dir is in path (needed when launched as subprocess)
-    import pathlib
     _here = pathlib.Path(__file__).resolve().parent
     _root = app_root()
     for _path in (str(_here), str(_root)):
         if _path not in sys.path:
             sys.path.insert(0, _path)
-    import os
     os.chdir(_root)
 
     db_ref = None

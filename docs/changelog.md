@@ -1,5 +1,26 @@
 # Mike — Changelog
 
+## [v2.4.0] — 2026-06-25 — Mode Dark Editorial UI Revamp
+
+### Added
+- **Mode Dark Editorial design system**: Full dashboard UI revamp using the project's official design spec. Deep forest-green surfaces (`#0f2f25`), ivory text (`#eef2e3`), editorial serif headlines (Georgia/Times New Roman), Graphik-style utility labels (Segoe UI), and a controlled palette of `#043f2e` / `#121212` / `#374151`.
+- **Signature chime sound**: `mike_chime.mp3` now plays on mic ON (25% volume) and mic OFF (15% volume) via `pygame.mixer`. Falls back gracefully to synthetic sine tones → `winsound.Beep`.
+- **Project organisation**: `mike initiation sound.mp3` moved to `assets/mike_chime.mp3`; `mike design.md` moved to `docs/design.md`. Root directory cleaned of `error.txt`.
+
+### Changed
+- **`dashboard.py`**: Complete rewrite. New design tokens, 4-wide stat card row (serif numbers + Graphik overline labels), session rows with dark surface and ivory text, primary buttons (ivory fill/dark green text/4px radius/50px height), sidebar with left-border active nav indicator, ComboBox and DateEdit matching input card style.
+- **`setup_wizard.py`**: Redesigned to match the Mode Dark Editorial palette. Fixed stylesheet accumulation bug (border state now set via a clean base style string, never appended).
+- **`sounds.py`**: Rewritten to use `mike_chime.mp3` at reduced volume. Three-tier fallback: `pygame` → `sounddevice` → `winsound.Beep`.
+- **`requirements.txt`**: Added `pygame` for MP3 playback.
+
+### Fixed
+- **Refresh timer leak on close**: `DashboardWindow.closeEvent()` now cancels the 10-second refresh `QTimer` before the window is destroyed.
+- **Status label lambda capture**: `_set_status()` reset callback moved to a named method `_reset_status()` — eliminates the mutable-closure edge case.
+- **API key input border accumulation**: `_reset_key_input_style()` helper replaces the inline lambda, ensures clean stylesheet replacement.
+- **Toggle key visibility**: Extracted to `_toggle_key_visibility()` method for clarity and testability.
+
+---
+
 ## [v2.3.0] — 2026-05-25 — Full Audit Pass
 
 ### Fixed (Security)

@@ -11,4 +11,5 @@ Pillow
 cairosvg
 svglib
 reportlab
+pygame
 pyinstaller
