@@ -5,7 +5,9 @@ Reads config.json from %LOCALAPPDATA%/Mike/config.json
 
 import json
 import logging
+import os
 import pathlib
+import tempfile
 
 logger = logging.getLogger("mike.config")
 
@@ -54,10 +56,31 @@ class Config:
 
     def _save(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = None
         try:
-            with open(self.path, "w", encoding="utf-8") as f:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=self.path.parent,
+                prefix=f".{self.path.name}.",
+                suffix=".tmp",
+                delete=False,
+            ) as f:
+                temporary_path = pathlib.Path(f.name)
                 json.dump(self._data, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temporary_path, self.path)
         except Exception as e:
+            if temporary_path is not None:
+                try:
+                    temporary_path.unlink(missing_ok=True)
+                except OSError as cleanup_error:
+                    logger.warning(
+                        "Could not remove temporary config file %s: %s",
+                        temporary_path,
+                        cleanup_error,
+                    )
             logger.error(f"Config save error: {e}")
 
     def is_api_key_set(self) -> bool:
