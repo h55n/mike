@@ -33,7 +33,16 @@ class EngineState:
 
 class MikeEngine:
     def __init__(
-        self, config, audio, transcription, ai, filters, injection, db, settings
+        self,
+        config,
+        audio,
+        transcription,
+        ai,
+        filters,
+        injection,
+        db,
+        settings,
+        control_secret=None,
     ):
         self.config = config
         self.audio = audio
@@ -43,6 +52,7 @@ class MikeEngine:
         self.inject = injection
         self.db = db
         self.settings = settings
+        self.control_secret = control_secret
 
         self.state = EngineState.IDLE
         self.mode = settings.get("active_mode", "raw")
@@ -346,6 +356,10 @@ class MikeEngine:
 
         try:
             env = os.environ.copy()
+            if self.control_secret is None:
+                env.pop("MIKE_CONTROL_SECRET", None)
+            else:
+                env["MIKE_CONTROL_SECRET"] = self.control_secret.hex()
             for k in list(env.keys()):
                 if (
                     k.startswith("_PYI")

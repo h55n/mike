@@ -17,6 +17,7 @@ import io
 import logging
 import os
 import pathlib
+import secrets
 import socket
 import sys
 import threading
@@ -140,6 +141,12 @@ def main():
         client.close()
         sys.exit(0)
 
+    # Generate a per-run secret for authenticated dashboard control messages.
+    from ipc_control import ControlMessageCodec
+
+    control_secret = secrets.token_bytes(32)
+    control_codec = ControlMessageCodec(control_secret)
+
     # ── 1. Config + DB ─────────────────────────────────────────────────────
     try:
         from config import Config
@@ -202,6 +209,7 @@ def main():
             injection=injector,
             db=db,
             settings=settings,
+            control_secret=control_secret,
         )
     except Exception as e:
         _show_error("Mike — Startup Error", f"Failed to initialize engine:\n\n{e}")
@@ -215,13 +223,16 @@ def main():
                 if data == b"OPEN_DASHBOARD":
                     logger.info("Received OPEN_DASHBOARD signal")
                     engine.open_dashboard()
-                elif data == b"KILL_MIC":
+                    continue
+
+                command = control_codec.decode(data)
+                if command == b"KILL_MIC":
                     logger.info("Received KILL_MIC signal — killing app")
                     engine.shutdown()
                     import os
 
                     os._exit(0)
-                elif data == b"WAKE_MIC":
+                elif command == b"WAKE_MIC":
                     logger.info("Received WAKE_MIC signal — waking engine")
                     threading.Thread(target=engine.wake_mic, daemon=True).start()
             except Exception as e:

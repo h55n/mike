@@ -33,6 +33,7 @@ from PyQt6.QtWidgets import (
 )
 
 from paths import app_root, asset_path
+from ipc_control import ControlMessageCodec
 
 logger = logging.getLogger("mike.dashboard")
 
@@ -1184,10 +1185,11 @@ class DashboardWindow(QMainWindow):
 
     def _send_mic_signal(self, signal: bytes) -> bool:
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.settimeout(0.5)
-            s.sendto(signal, ("127.0.0.1", self._MIKE_PORT))
-            s.close()
+            secret = bytes.fromhex(os.environ.get("MIKE_CONTROL_SECRET", ""))
+            message = ControlMessageCodec(secret).encode(signal)
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+                s.settimeout(0.5)
+                s.sendto(message, ("127.0.0.1", self._MIKE_PORT))
             return True
         except Exception:
             return False
@@ -1212,7 +1214,7 @@ class DashboardWindow(QMainWindow):
         if sent:
             self._set_status("⏹ Mike killed", _ERROR)
         else:
-            self._set_status("⚠ Mike not running", "#fcd34d")
+            self._set_status("⚠ Reopen dashboard from Mike to control", _ERROR)
 
     def _wake_mike(self):
         logger.info("Wake Mike requested")
@@ -1229,8 +1231,10 @@ class DashboardWindow(QMainWindow):
                 pass
 
         if mike_alive:
-            self._send_mic_signal(b"WAKE_MIC")
-            self._set_status("▶ Wake signal sent", "#6ee7b7")
+            if self._send_mic_signal(b"WAKE_MIC"):
+                self._set_status("▶ Wake signal sent", "#6ee7b7")
+            else:
+                self._set_status("⚠ Reopen dashboard from Mike to control", _ERROR)
         else:
             mike_exe = (
                 pathlib.Path(os.environ.get("LOCALAPPDATA", ""))
@@ -1241,6 +1245,7 @@ class DashboardWindow(QMainWindow):
             if mike_exe.exists():
                 try:
                     env = os.environ.copy()
+                    env.pop("MIKE_CONTROL_SECRET", None)
                     for k in list(env.keys()):
                         if (
                             k.startswith("_PYI")
